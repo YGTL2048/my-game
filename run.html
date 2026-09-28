@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>大肥鱼逃亡记</title>
+    <style>
+        body {
+            background-color: #1a1e24;
+            color: #e0e6ed;
+            font-family: sans-serif;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            min-height: 100dvh; margin: 0; padding: 0;
+            box-sizing: border-box; overflow: hidden;
+            touch-action: none; user-select: none;
+        }
+        .game-container {
+            position: relative; width: 100%; max-width: 400px;
+            height: 85dvh; max-height: 700px; border-radius: 12px;
+            overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 2px solid #3b4654;
+            background: #2a1f1a; /* 别墅木地板底色 */
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(0, 0, 0, 0.7); z-index: 10; text-align: center; padding: 20px; box-sizing: border-box;
+        }
+        .overlay h1 { font-size: 24px; color: #5b9bd5; margin-bottom: 10px; }
+        .overlay p { font-size: 15px; margin: 5px 0; color: #ccddee; line-height: 1.5; }
+        .btn {
+            margin-top: 20px; padding: 12px 30px; font-size: 18px; font-weight: bold;
+            background: #00bcd4; color: white; border: none; border-radius: 8px;
+            cursor: pointer; box-shadow: 0 4px 0 #008ba3; transition: all 0.1s;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #008ba3; }
+        #score-board {
+            position: absolute; top: 15px; left: 15px; z-index: 5;
+            font-size: 18px; font-weight: bold; color: #ffcc00; text-shadow: 1px 1px 0 #000;
+        }
+        #distance-board {
+            position: absolute; top: 15px; right: 15px; z-index: 5;
+            font-size: 18px; font-weight: bold; color: #ff6666; text-shadow: 1px 1px 0 #000;
+        }
+        .controls {
+            position: absolute; bottom: 20px; right: 20px; z-index: 10;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .ctrl-btn {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: rgba(91, 155, 213, 0.5); color: white;
+            font-size: 24px; display: flex; justify-content: center; align-items: center;
+            border: 2px solid rgba(255,255,255,0.3); cursor: pointer;
+        }
+        .ctrl-btn:active { background: rgba(91, 155, 213, 0.8); }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div id="score-board">米饭: 0</div>
+    <div id="distance-board">危险: 安全</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 手机端实体按键（备用） -->
+    <div class="controls">
+        <button class="ctrl-btn" id="btnUp">↑</button>
+        <button class="ctrl-btn" id="btnDown">↓</button>
+    </div>
+
+    <div class="overlay" id="startOverlay">
+        </h1>大肥鱼逃亡记</h1>
+        <p>我是大肥鱼，我疯狂想吃白饭！</p>
+        <p>但是用户（火柴人）在身后穷追不舍！</p>
+        <p>← 滑动屏幕或点击按钮 ↑ ↓ 切换跑道</p>
+        <p>吃米饭加分，撞家具减速，被抓住就结束！</p>
+        <button class="btn" id="startBtn">开始逃亡</button>
+    </div>
+
+    <div class="overlay" id="overOverlay" style="display: none;">
+        <h1 id="overTitle">你被抓到了！</h1>
+        <p id="finalScore">最终得分: 0</p>
+        <button class="btn" id="restartBtn">再来一局</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreBoard = document.getElementById('score-board');
+    const distanceBoard = document.getElementById('distance-board');
+    const startOverlay = document.getElementById('startOverlay');
+    const overOverlay = document.getElementById('overOverlay');
+    const overTitle = document.getElementById('overTitle');
+    const finalScoreEl = document.getElementById('finalScore');
+
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // 游戏状态
+    let gameState = 'idle'; // idle, playing, over
+    let score = 0;
+    let gameSpeed = 5;
+    let baseSpeed = 5;
+    
+    // 跑道系统 (0=上, 1=中, 2=下)
+    const LANES = [canvas.height * 0.35, canvas.height * 0.55, canvas.height * 0.75];
+    let currentLane = 1; // 默认中间跑道
+    let targetY = LANES[currentLane];
+    let fishY = LANES[currentLane];
+    let fishX = canvas.width * 0.3;
+
+    // 追逐系统
+    let chaserX = -80; // 初始在屏幕外
+    let chaserTargetX = fishX - 100; // 始终保持在鱼后100px
+    let dangerLevel = 0; // 0-3, 3就是被抓
+    let invincibleTime = 0; // 撞击后的无敌时间
+
+    // 物体池
+    let obstacles = []; // 家具
+    let riceGrains = []; // 米饭
+    let backgroundItems = []; // 背景装饰
+
+    // 初始化背景
+    for (let i = 0; i < 5; i++) {
+        backgroundItems.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            type: Math.random() > 0.5 ? 'window' : 'column',
+            size: Math.random() * 50 + 30
+        });
+    }
+
+    function initGame() {
+        resizeCanvas();
+        score = 0;
+        gameSpeed = 5;
+        dangerLevel = 0;
+        currentLane = 1;
+        fishY = LANES[1];
+        targetY = LANES[1];
+        chaserX = -100;
+        invincibleTime = 0;
+        obstacles = [];
+        riceGrains = [];
+        scoreBoard.innerText = `米饭: ${score}`;
+        updateDanger();
+        gameState = 'playing';
+        startOverlay.style.display = 'none';
+        overOverlay.style.display = 'none';
+    }
+
+    function updateDanger() {
+        if (dangerLevel === 0) distanceBoard.innerText = '危险: 安全';
+        else if (dangerLevel === 1) distanceBoard.innerText = '危险: 靠近';
+        else if (dangerLevel === 2) distanceBoard.innerText = '危险: 危急';
+        else distanceBoard.innerText = '危险: 死亡';
+    }
+
+    function switchLane(dir) {
+        if (gameState !== 'playing') return;
+        let newLane = currentLane + dir;
+        if (newLane >= 0 && newLane <= 2) {
+            currentLane = newLane;
+            targetY = LANES[currentLane];
+        }
+    }
+
+    // 键盘和触摸事件
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') { e.preventDefault(); switchLane(-1); }
+        if (e.key === 'ArrowDown') { e.preventDefault(); switchLane(1); }
+    });
+
+    let touchStartY = 0;
+    document.addEventListener('touchstart', (e) => {
+        if (e.target.closest('button') || e.target.closest('.overlay')) return;
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        if (e.target.closest('button') || e.target.closest('.overlay')) return;
+        let touchEndY = e.changedTouches[0].clientY;
+        let dy = touchEndY - touchStartY;
+        if (Math.abs(dy) > 30) {
+            if (dy > 0) switchLane(1); // 下滑往下
+            else switchLane(-1);       // 上滑往上
+        }
+    }, { passive: true });
+
+    document.getElementById('btnUp').addEventListener('touchstart', (e) => { e.preventDefault(); switchLane(-1); });
+    document.getElementById('btnDown').addEventListener('touchstart', (e) => { e.preventDefault(); switchLane(1); });
+
+    function gameOver() {
+        gameState = 'over';
+        if (dangerLevel >= 3) {
+            overTitle.innerText = '你被抓住了！';
+            finalScoreEl.innerText = `最终得分: ${score}（大肥鱼被强制减肥了）`;
+        } else {
+            overTitle.innerText = '游戏结束';
+            finalScoreEl.innerText = `最终得分: ${score}`;
+        }
+        overOverlay.style.display = 'flex';
+    }
+
+    // 生成物体
+    function spawnObjects() {
+        // 生成障碍物 (30% 概率)
+        if (Math.random() < 0.3) {
+            let lane = Math.floor(Math.random() * 3);
+            obstacles.push({
+                x: canvas.width + 100,
+                lane: lane,
+                type: Math.random() > 0.5 ? 'sofa' : 'table',
+                width: 60,
+                height: 40
+            });
+        }
+
+        // 生成米饭 (50% 概率)
+        if (Math.random() < 0.5) {
+            let lane = Math.floor(Math.random() * 3);
+            riceGrains.push({
+                x: canvas.width + 50,
+                lane: lane,
+                radius: 12,
+                collected: false
+            });
+        }
+    }
+
+    // 游戏更新
+    let frameCount = 0;
+    function update() {
+        if (gameState === 'playing') {
+            frameCount++;
+            
+            // 鱼平滑移动到目标跑道
+            fishY += (targetY - fishY) * 0.2;
+
+            // 增加速度
+            if (frameCount % 300 === 0) gameSpeed += 0.5;
+
+            // 生成物体
+            if (frameCount % Math.max(25, 60 - Math.floor(gameSpeed * 2)) === 0) {
+                spawnObjects();
+            }
+
+            // 火柴人追逐逻辑
+            // 正常情况下，火柴人始终落后大肥鱼一定距离
+            let normalChaserDistance = 80;
+            let idealChaserX = fishX - normalChaserDistance - (dangerLevel * 30);
+            
+            // 如果撞了，dangerLevel增大，火柴人会逼近
+            if (invincibleTime > 0) {
+                invincibleTime--;
+            } else {
+                chaserX += (idealChaserX - chaserX) * 0.05;
+            }
+
+            // 更新障碍物
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.x -= gameSpeed;
+
+                // 碰撞检测 (矩形重叠)
+                if (Math.abs(obs.x - fishX) < 40 && obs.lane === currentLane) {
+                    if (invincibleTime <= 0) {
+                        // 撞击！惩罚
+                        dangerLevel++;
+                        invincibleTime = 60; // 1秒无敌
+                        updateDanger();
+                        if (dangerLevel >= 3) {
+                            gameOver();
+                        }
+                    }
+                }
+
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // 更新米饭
+            for (let i = riceGrains.length - 1; i >= 0; i--) {
+                let rice = riceGrains[i];
+                rice.x -= gameSpeed;
+
+                // 碰撞检测（距离计算）
+                if (!rice.collected && Math.abs(rice.x - fishX) < 30 && rice.lane === currentLane) {
+                    rice.collected = true;
+                    score += 10;
+                    scoreBoard.innerText = `米饭: ${score}`;
+                    // 吃到米饭，火柴人稍微被拉开
+                    if (dangerLevel > 0) {
+                        dangerLevel--;
+                        updateDanger();
+                    }
+                }
+
+                if (rice.x < -50) {
+                    riceGrains.splice(i, 1);
+                }
+            }
+
+            // 更新背景
+            backgroundItems.forEach(bg => {
+                bg.x -= gameSpeed * 0.2;
+                if (bg.x < -bg.size) bg.x = canvas.width + bg.size;
+            });
+        }
+
+        draw();
+        requestAnimationFrame(update);
+    }
+
+    // 绘制
+    function draw() {
+        // 1. 绘制别墅背景
+        // 墙壁
+        ctx.fillStyle = '#3a2f2a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 地板
+        ctx.fillStyle = '#2a1f1a';
+        ctx.fillRect(0, canvas.height * 0.25, canvas.width, canvas.height * 0.75);
+
+        // 绘制背景装饰（窗户、柱子）
+        backgroundItems.forEach(bg => {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            if (bg.type === 'window') {
+                ctx.fillRect(bg.x, canvas.height * 0.1, bg.size, bg.size * 1.5);
+            } else {
+                ctx.fillRect(bg.x, 0, bg.size * 0.5, canvas.height);
+            }
+        });
+
+        // 绘制跑道线（透视感）
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 2;
+        LANES.forEach((laneY, index) => {
+            ctx.beginPath();
+            ctx.moveTo(0, laneY + 30);
+            ctx.lineTo(canvas.width, laneY + 30);
+            ctx.stroke();
+        });
+
+        // 2. 绘制障碍物（别墅家具）
+        obstacles.forEach(obs => {
+            let y = LANES[obs.lane];
+            ctx.fillStyle = obs.type === 'sofa' ? '#8b0000' : '#654321';
+            ctx.fillRect(obs.x, y - 20, obs.width, obs.height);
+            // 3D 效果
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.fillRect(obs.x, y - 20, obs.width, 5);
+            // 细节
+            if (obs.type === 'sofa') {
+                ctx.fillStyle = '#a00000';
+                ctx.fillRect(obs.x + 5, y - 15, 10, 20);
+                ctx.fillRect(obs.x + 45, y - 15, 10, 20);
+            } else {
+                ctx.fillStyle = '#4a3020';
+                ctx.fillRect(obs.x + 10, y - 10, 40, 5);
+            }
+        });
+
+        // 3. 绘制米饭
+        riceGrains.forEach(rice => {
+            if (!rice.collected) {
+                let y = LANES[rice.lane];
+                // 碗
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(rice.x, y, rice.radius, 0, Math.PI, true);
+                ctx.fill();
+                // 米饭粒
+                ctx.fillStyle = '#f0f0f0';
+                ctx.beginPath();
+                ctx.arc(rice.x - 3, y - 5, 4, 0, Math.PI * 2);
+                ctx.arc(rice.x + 3, y - 7, 4, 0, Math.PI * 2);
+                ctx.arc(rice.x, y - 2, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
+
+        // 4. 绘制火柴人（追逐者）
+        drawStickman(chaserX, LANES[currentLane], dangerLevel);
+
+        // 5. 绘制大肥鱼（主角）
+        if (gameState !== 'idle') {
+            drawBigFish(fishX, fishY, dangerLevel);
+        }
+
+        // 6. 危险警告
+        if (dangerLevel >= 2 && gameState === 'playing') {
+            ctx.fillStyle = `rgba(255, 0, 0, ${0.1 + Math.sin(frameCount * 0.5) * 0.1})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+
+    // 绘制火柴人（用户）
+    function drawStickman(x, y, danger) {
+        ctx.save();
+        ctx.translate(x, y);
+        
+        // 如果危险等级高，火柴人变红
+        ctx.strokeStyle = danger >= 2 ? '#ff3333' : '#000000';
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+
+        // 头部
+        ctx.beginPath();
+        ctx.arc(0, -30, 12, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 身体
+        ctx.beginPath();
+        ctx.moveTo(0, -18);
+        ctx.lineTo(0, 10);
+        ctx.stroke();
+
+        // 手臂（跑步姿势）
+        ctx.beginPath();
+        ctx.moveTo(0, -10);
+        ctx.lineTo(-15, 0);
+        ctx.moveTo(0, -10);
+        ctx.lineTo(15, 0);
+        ctx.stroke();
+
+        // 腿部（跑步姿势）
+        ctx.beginPath();
+        ctx.moveTo(0, 10);
+        ctx.lineTo(-12, 30);
+        ctx.moveTo(0, 10);
+        ctx.lineTo(12, 30);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    // 绘制大肥鱼（像素风，基于之前的设定）
+    function drawBigFish(x, y, danger) {
+        ctx.save();
+        ctx.translate(x, y);
+        // 奔跑时的上下浮动
+        let bob = Math.sin(frameCount * 0.5) * 3;
+        ctx.translate(0, bob);
+
+        const p = 2.5; // 像素大小
+        
+        // 颜色
+        const cHair = '#3d6baf';
+        const cHairLight = '#5b9bd5';
+        const cHeadWear = '#ffffff';
+        const cFace = '#ffd7b5';
+        const cEye = '#000000';
+        const cDress = '#232a33';
+        const cApron = '#ffffff';
+        const cTail = '#4a8ab5';
+
+        // 惊恐表情（危险时）
+        if (danger >= 2) {
+            ctx.fillStyle = '#ff0000';
+        }
+
+        // 尾巴（在身后）
+        ctx.fillStyle = cTail;
+        ctx.fillRect(-15 * p, -2 * p, 4 * p, 4 * p);
+        ctx.fillRect(-18 * p, -4 * p, 3 * p, 2 * p);
+        ctx.fillRect(-18 * p, 2 * p, 3 * p, 2 * p);
+
+        // 后发
+        ctx.fillStyle = cHair;
+        ctx.fillRect(-8 * p, -8 * p, 14 * p, 14 * p);
+
+        // 裙子
+        ctx.fillStyle = cDress;
+        ctx.fillRect(-8 * p, 4 * p, 12 * p, 6 * p);
+        
+        // 围裙
+        ctx.fillStyle = cApron;
+        ctx.fillRect(-5 * p, 6 * p, 8 * p, 4 * p);
+        ctx.fillStyle = cHairLight;
+        ctx.fillRect(0, 8 * p, 2 * p, 1 * p);
+
+        // 脸
+        ctx.fillStyle = cFace;
+        ctx.fillRect(2 * p, -6 * p, 10 * p, 10 * p);
+
+        // 腮红
+        ctx.fillStyle = '#ff9999';
+        ctx.fillRect(1 * p, -1 * p, 3 * p, 2 * p);
+
+        // 眼睛（惊恐大眼）
+        ctx.fillStyle = cEye;
+        if (danger >= 2) {
+            // 危险：大圆眼
+            ctx.beginPath(); ctx.arc(7 * p, -1 * p, 2.5 * p, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(7 * p, -2 * p, 1 * p, 0, Math.PI*2); ctx.fill();
+        } else {
+            // 正常：像素眼
+            ctx.fillRect(6 * p, -3 * p, 2 * p, 3 * p);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(6 * p, -3 * p, 1 * p, 1 * p);
+        }
+
+        // 刘海
+        ctx.fillStyle = cHair;
+        ctx.fillRect(1 * p, -8 * p, 11 * p, 3 * p);
+        ctx.fillRect(1 * p, -5 * p, 2 * p, 3 * p);
+
+        // 头饰
+        ctx.fillStyle = cHeadWear;
+        ctx.fillRect(1 * p, -10 * p, 10 * p, 2 * p);
+        for(let i = 1; i <= 9; i+=2) {
+            ctx.fillRect(i * p, -11 * p, 1 * p, 1 * p);
+        }
+
+        // 鳍耳
+        ctx.fillStyle = cHairLight;
+        ctx.fillRect(-1 * p, -7 * p, 2 * p, 3 * p);
+        ctx.fillRect(11 * p, -7 * p, 2 * p, 3 * p);
+
+        // 偷吃的白饭（拿在手里）
+        if (gameState === 'playing' && frameCount % 60 < 30) {
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(14 * p, 4 * p, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    // 按钮事件
+    document.getElementById('startBtn').addEventListener('click', initGame);
+    document.getElementById('restartBtn').addEventListener('click', initGame);
+
+    update();
+</script>
+</body>
+</html>
