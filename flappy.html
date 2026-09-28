@@ -91,12 +91,13 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // 难度配置：[重力, 跳跃力, 障碍生成间隔]
+    // 难度配置：[重力, 跳跃力, 障碍生成间隔(帧)]
+    // 困难：沿用了上一版的地狱参数。地狱：速度拉满，间隔更短，更变态！
     const DIFFICULTY = [
-        { gravity: 0.12, jump: -3.8, spawn: 120, label: '简单' },
-        { gravity: 0.18, jump: -4.8, spawn: 100, label: '普通' },
-        { gravity: 0.28, jump: -5.8, spawn: 80, label: '困难' },
-        { gravity: 0.40, jump: -7.2, spawn: 60, label: '地狱' }
+        { gravity: 0.12, jump: -3.8, spawn: 130, label: '简单' },
+        { gravity: 0.18, jump: -4.8, spawn: 110, label: '普通' },
+        { gravity: 0.35, jump: -6.5, spawn: 80, label: '困难' }, // 旧地狱
+        { gravity: 0.50, jump: -8.5, spawn: 55, label: '地狱' }  // 新地狱：更快更难！
     ];
     let diffIndex = 1; // 默认普通
 
@@ -106,7 +107,7 @@
     const fish = {
         x: 80,
         y: canvas.height / 2,
-        radius: 12, // 略微缩小碰撞半径，贴合横向鱼身
+        radius: 12, 
         vy: 0,
         rotation: 0
     };
@@ -182,7 +183,6 @@
             
             fish.vy += DIFFICULTY[diffIndex].gravity;
             fish.y += fish.vy;
-            // 横版游泳时，根据速度上下倾斜
             fish.rotation = Math.min(Math.max(fish.vy * 0.04, -0.3), 0.4);
 
             if (fish.y - fish.radius < 0 || fish.y + fish.radius > canvas.height) {
@@ -190,8 +190,12 @@
             }
 
             if (frameCount % DIFFICULTY[diffIndex].spawn === 0) {
-                let gap = 160; 
-                let topHeight = Math.random() * (canvas.height - gap - 100) + 50;
+                let gap = Math.max(170, canvas.height * 0.28); 
+                let minTop = 50; 
+                let maxTop = canvas.height - gap - 50; 
+                if (maxTop < minTop) maxTop = minTop; 
+                
+                let topHeight = Math.random() * (maxTop - minTop) + minTop;
                 
                 obstacles.push({
                     x: canvas.width,
@@ -203,7 +207,7 @@
 
                 riceGrains.push({
                     x: canvas.width + 25,
-                    y: topHeight + gap / 2 + (Math.random() * 40 - 20),
+                    y: topHeight + gap / 2 + (Math.random() * 30 - 15),
                     radius: 8,
                     collected: false
                 });
@@ -211,7 +215,9 @@
 
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
-                obs.x -= 2.5; 
+                // 地狱难度下障碍物移动速度也略微加快
+                let speedMultiplier = diffIndex === 3 ? 3.5 : 2.5;
+                obs.x -= speedMultiplier; 
                 
                 let fishLeft = fish.x - fish.radius;
                 let fishRight = fish.x + fish.radius;
@@ -237,7 +243,8 @@
 
             for (let i = riceGrains.length - 1; i >= 0; i--) {
                 let rice = riceGrains[i];
-                rice.x -= 2.5;
+                let speedMultiplier = diffIndex === 3 ? 3.5 : 2.5;
+                rice.x -= speedMultiplier;
 
                 if (!rice.collected) {
                     let dx = fish.x - rice.x;
@@ -302,79 +309,61 @@
         }
     }
 
-    // ★★★ 高清横版像素大肥鱼 ★★★
     function drawPixelFish(x, y, rotation) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(rotation);
         
-        const p = 2; // 像素块缩小到2px，精度更高，细节更多
-        
-        // 颜色定义
-        const cHair = '#3d6baf'; // 深蓝发色
-        const cHairLight = '#5b9bd5'; // 浅蓝高光
-        const cHeadWear = '#ffffff'; // 女仆头饰
-        const cFace = '#ffd7b5'; // 脸部肤色
-        const cEye = '#000000'; // 眼睛
-        const cDress = '#232a33'; // 女仆裙子
-        const cApron = '#ffffff'; // 围裙
-        const cTail = '#4a8ab5'; // 尾巴
+        const p = 2; 
+        const cHair = '#3d6baf'; 
+        const cHairLight = '#5b9bd5'; 
+        const cHeadWear = '#ffffff'; 
+        const cFace = '#ffd7b5'; 
+        const cEye = '#000000'; 
+        const cDress = '#232a33'; 
+        const cApron = '#ffffff'; 
+        const cTail = '#4a8ab5'; 
 
-        // 1. 画尾巴（画在身体后面，左侧）
         ctx.fillStyle = cTail;
-        ctx.fillRect(-12 * p, -4 * p, 4 * p, 2 * p); // 尾鳍上
-        ctx.fillRect(-12 * p, 2 * p, 4 * p, 2 * p); // 尾鳍下
-        ctx.fillRect(-14 * p, -2 * p, 4 * p, 4 * p); // 尾鳍根部
+        ctx.fillRect(-12 * p, -4 * p, 4 * p, 2 * p);
+        ctx.fillRect(-12 * p, 2 * p, 4 * p, 2 * p);
+        ctx.fillRect(-14 * p, -2 * p, 4 * p, 4 * p);
 
-        // 2. 画后侧头发（包裹身体）
         ctx.fillStyle = cHair;
         ctx.fillRect(-6 * p, -6 * p, 12 * p, 12 * p);
 
-        // 3. 画女仆裙身体（横向拉伸）
         ctx.fillStyle = cDress;
         ctx.fillRect(-6 * p, 2 * p, 10 * p, 4 * p);
         
-        // 围裙（横向）
         ctx.fillStyle = cApron;
         ctx.fillRect(-4 * p, 3 * p, 8 * p, 3 * p);
-        // 围裙上的小蓝鲸装饰
         ctx.fillStyle = cHairLight;
         ctx.fillRect(0, 4 * p, 2 * p, 1 * p);
 
-        // 4. 画脸蛋（靠右侧，因为头朝右）
         ctx.fillStyle = cFace;
         ctx.fillRect(2 * p, -4 * p, 8 * p, 8 * p);
 
-        // 5. 画腮红
         ctx.fillStyle = '#ff9999';
         ctx.fillRect(1 * p, 0, 2 * p, 2 * p);
 
-        // 6. 画眼睛（靠右，像素风大眼）
         ctx.fillStyle = cEye;
-        ctx.fillRect(5 * p, -2 * p, 2 * p, 3 * p); // 眼睛主体
-        // 眼睛高光
+        ctx.fillRect(5 * p, -2 * p, 2 * p, 3 * p);
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(5 * p, -2 * p, 1 * p, 1 * p);
 
-        // 7. 画前侧头发（刘海，覆盖在头上方）
         ctx.fillStyle = cHair;
         ctx.fillRect(1 * p, -6 * p, 9 * p, 3 * p);
-        // 刘海下垂的鬓角
         ctx.fillRect(1 * p, -3 * p, 2 * p, 3 * p);
 
-        // 8. 画女仆头饰（头顶横向）
         ctx.fillStyle = cHeadWear;
         ctx.fillRect(1 * p, -8 * p, 8 * p, 2 * p); 
-        // 头饰花边
         for(let i = 1; i <= 7; i+=2) {
             ctx.fillRect(i * p, -9 * p, 1 * p, 1 * p);
         }
 
-        // 9. 画鲸鱼鳍耳朵（因为是侧身，只画可见的一侧）
         ctx.fillStyle = cHairLight;
-        ctx.fillRect(-2 * p, -5 * p, 2 * p, 3 * p); // 背鳍/耳朵
+        ctx.fillRect(-2 * p, -5 * p, 2 * p, 3 * p);
 
-        // 10. 画小尾巴（虽然前面画了尾巴，这里再补一点细节）
         ctx.fillStyle = cTail;
         ctx.fillRect(-10 * p, -1 * p, 2 * p, 2 * p);
 
