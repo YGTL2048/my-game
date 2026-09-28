@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>游戏大厅</title>
+    <title>大肥鱼游戏大厅</title>
     <style>
         body {
             background-color: #1a1e24;
@@ -30,7 +30,7 @@
             flex-direction: column;
             gap: 15px;
             width: 100%;
-            max-width: 300px;
+            max-width: 320px;
         }
         .game-card {
             background-color: #232a33;
@@ -60,21 +60,28 @@
             padding: 2px 8px;
             border-radius: 10px;
         }
+        .tag.new {
+            color: #00bcd4;
+            border: 1px solid #00bcd4;
+        }
     </style>
 </head>
 <body>
 
-    <h1>游戏大厅</h1>
+    <h1>🐟 大肥鱼游戏大厅</h1>
 
     <div class="menu">
+        <a href="flappy.html" class="game-card">
+            🌊 大肥鱼海底历险记 <span class="tag new">NEW</span>
+        </a>
         <a href="2048.html" class="game-card">
-            2048 <span class="tag">丝滑版</span>
+            🔢 2048 <span class="tag">丝滑版</span>
         </a>
         <a href="tetris.html" class="game-card">
-            俄罗斯方块
+            🧱 俄罗斯方块 <span class="tag">多主题</span>
         </a>
         <a href="snake.html" class="game-card">
-            贪吃蛇
+            🐍 贪吃蛇 <span class="tag">吃白饭</span>
         </a>
     </div>
 
