@@ -32,27 +32,30 @@
             height: 55dvh; width: auto; max-width: 100%; aspect-ratio: 1 / 2;
         }
         .controls-top {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
-            width: 100%; margin-top: 15px;
-        }
-        .mobile-controls {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-            width: 100%; margin-top: 8px;
-        }
-        .btn {
-            background: #3b4654; border: none; border-radius: 8px; color: #e0e6ed;
-            font-size: 16px; font-weight: bold; padding: 12px 0; text-align: center;
-            cursor: pointer; user-select: none; box-shadow: 0 4px 0 #1c2229; transition: all 0.1s;
-        }
-        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #1c2229; }
-        .btn.up { grid-column: 2; }
-        .btn.left { grid-column: 1; grid-row: 2; }
-        .btn.down { grid-column: 2; grid-row: 2; }
-        .btn.right { grid-column: 3; grid-row: 2; }
-        .btn.start { background: #00a000; }
-        .btn.pause { background: #a000f0; }
-        .btn.speed { background: #f0a000; }
-        .btn.restart { grid-column: span 3; background: #f00000; margin-top: 5px; }
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+    width: 100%; margin-top: 15px;
+}
+.mobile-controls {
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 10px;
+    width: 100%; margin-top: 10px;
+}
+.btn {
+    background: #3b4654; border: none; border-radius: 8px; color: #e0e6ed;
+    font-size: 20px; font-weight: bold; 
+    min-height: 60px; /* 强制按键变成方块大小，方便点按 */
+    display: flex; justify-content: center; align-items: center;
+    cursor: pointer; user-select: none; box-shadow: 0 4px 0 #1c2229; transition: all 0.1s;
+}
+.btn:active { transform: translateY(4px); box-shadow: 0 0 0 #1c2229; }
+/* 一键直落占三列 */
+.btn.drop { grid-column: span 3; background: #5b9bd5; color: white; }
+.btn.restart { background: #f00000; }
+.btn.start { background: #00a000; }
+.btn.pause { background: #a000f0; }
+.btn.speed { background: #f0a000; }
+        
     </style>
 </head>
 <body>
@@ -65,21 +68,23 @@
     <canvas id="gameCanvas" width="300" height="600"></canvas>
     
     <div class="controls-top">
-        <button class="btn start" id="btnStart">开始游戏</button>
-        <button class="btn pause" id="btnPause">暂停</button>
-    </div>
-    <div class="controls-top" style="grid-template-columns: 1fr; margin-top: 5px;">
-        <button class="btn speed" id="btnSpeed">速度: 普通</button>
-    </div>
+    <button class="btn start" id="btnStart">开始游戏</button>
+    <button class="btn pause" id="btnPause">暂停</button>
+</div>
+<div class="controls-top" style="margin-top: 5px;">
+    <button class="btn speed" id="btnSpeed">速度: 普通</button>
+    <button class="btn restart" id="btnRestart">重新开始</button>
+</div>
 
-    <div class="mobile-controls">
-        <button class="btn up" id="btnUp">↻</button>
-        <button class="btn left" id="btnLeft">←</button>
-        <button class="btn down" id="btnDown">↓</button>
-        <button class="btn right" id="btnRight">→</button>
-        <button class="btn drop" id="btnDrop" style="grid-column: span 3; margin-top: 5px; background: #5b9bd5; color: white;">⇓ 一键直落到底</button>
-        <button class="btn restart" id="btnRestart">重新开始</button>
-    </div>
+<div class="mobile-controls">
+    <!-- 第一行：旋转键居中 -->
+    <button class="btn rotate" id="btnUp" style="grid-column: 2;">↻</button>
+    <!-- 第二行：左右下 -->
+    <button class="btn left" id="btnLeft">←</button>
+    <button class="btn down" id="btnDown">↓</button>
+    <button class="btn right" id="btnRight">→</button>
+    <!-- 第三行：一键直落 -->
+    <button class="btn drop" id="btnDrop">⇓ 一键直落到底</button>
 </div>
 
 <script>
