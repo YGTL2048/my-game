@@ -69,7 +69,6 @@
     const overOverlay = document.getElementById('overOverlay');
     const finalScoreEl = document.getElementById('finalScore');
 
-    // 设置画布尺寸
     function resizeCanvas() {
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
@@ -77,11 +76,9 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // 游戏状态
-    let gameState = 'idle'; // idle, playing, over
+    let gameState = 'idle'; 
     let score = 0;
     
-    // 大肥鱼物理参数
     const fish = {
         x: 80,
         y: canvas.height / 2,
@@ -92,16 +89,12 @@
         rotation: 0
     };
 
-    // 障碍物、白饭、背景气泡
     let obstacles = [];
     let riceGrains = [];
     let bubbles = [];
-    
-    // 计时器
     let frameCount = 0;
-    let spawnInterval = 90; // 大约 1.5 秒生成一个障碍
+    let spawnInterval = 90; 
 
-    // 初始化气泡背景
     for (let i = 0; i < 20; i++) {
         bubbles.push({
             x: Math.random() * canvas.width,
@@ -134,32 +127,45 @@
         }
     }
 
-    // 触摸或点击屏幕
-    document.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); }, { passive: false });
-    document.addEventListener('mousedown', (e) => { e.preventDefault(); jump(); });
-    document.getElementById('startBtn').addEventListener('click', (e) => { e.stopPropagation(); initGame(); });
-    document.getElementById('restartBtn').addEventListener('click', (e) => { e.stopPropagation(); initGame(); });
+    // 修复：全局触摸事件拦截了按钮点击
+    document.addEventListener('touchstart', (e) => {
+        // 如果点击的是按钮或遮罩层，不要拦截，交给按钮自己的事件处理
+        if (e.target.closest('button') || e.target.closest('.overlay')) return;
+        e.preventDefault(); 
+        jump(); 
+    }, { passive: false });
 
-    // 游戏循环
+    document.addEventListener('mousedown', (e) => {
+        if (e.target.closest('button') || e.target.closest('.overlay')) return;
+        e.preventDefault(); 
+        jump(); 
+    });
+
+    // 专门为按钮绑定触摸和点击事件，并阻止冒泡
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    
+    startBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); e.preventDefault(); initGame(); }, { passive: false });
+    startBtn.addEventListener('click', (e) => { e.stopPropagation(); initGame(); });
+    
+    restartBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); e.preventDefault(); initGame(); }, { passive: false });
+    restartBtn.addEventListener('click', (e) => { e.stopPropagation(); initGame(); });
+
     function update() {
         if (gameState === 'playing') {
             frameCount++;
             
-            // 大肥鱼物理
             fish.vy += fish.gravity;
             fish.y += fish.vy;
             
-            // 大肥鱼旋转角度（根据速度）
             fish.rotation = Math.min(Math.max(fish.vy * 0.05, -0.4), 0.5);
 
-            // 边界碰撞
             if (fish.y - fish.radius < 0 || fish.y + fish.radius > canvas.height) {
                 gameOver();
             }
 
-            // 生成障碍物（珊瑚）
             if (frameCount % spawnInterval === 0) {
-                let gap = 140; // 缝隙大小
+                let gap = 140; 
                 let topHeight = Math.random() * (canvas.height - gap - 100) + 50;
                 
                 obstacles.push({
@@ -170,7 +176,6 @@
                     passed: false
                 });
 
-                // 在缝隙中生成白饭
                 riceGrains.push({
                     x: canvas.width + 25,
                     y: topHeight + gap / 2 + (Math.random() * 40 - 20),
@@ -179,12 +184,10 @@
                 });
             }
 
-            // 移动障碍物
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
-                obs.x -= 2; // 移动速度
+                obs.x -= 2; 
                 
-                // 碰撞检测（矩形与圆）
                 let fishLeft = fish.x - fish.radius;
                 let fishRight = fish.x + fish.radius;
                 let fishTop = fish.y - fish.radius;
@@ -196,25 +199,21 @@
                     }
                 }
 
-                // 加分（穿过）
                 if (!obs.passed && obs.x + obs.width < fish.x - fish.radius) {
                     obs.passed = true;
                     score += 1;
                     scoreBoard.innerText = `得分: ${score}`;
                 }
 
-                // 移除出界的障碍物
                 if (obs.x + obs.width < 0) {
                     obstacles.splice(i, 1);
                 }
             }
 
-            // 移动白饭
             for (let i = riceGrains.length - 1; i >= 0; i--) {
                 let rice = riceGrains[i];
                 rice.x -= 2;
 
-                // 碰撞检测（圆与圆）
                 if (!rice.collected) {
                     let dx = fish.x - rice.x;
                     let dy = fish.y - rice.y;
@@ -231,7 +230,6 @@
                 }
             }
 
-            // 更新气泡
             bubbles.forEach(b => {
                 b.y -= b.speed;
                 if (b.y < 0) {
@@ -251,13 +249,10 @@
         overOverlay.style.display = 'flex';
     }
 
-    // 绘制
     function draw() {
-        // 绘制海底背景渐变（在CSS里做了，但canvas里也可以补一点深色底）
         ctx.fillStyle = '#0b1d3a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 绘制海底光线
         ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
         ctx.beginPath();
         ctx.moveTo(canvas.width * 0.2, 0);
@@ -266,7 +261,6 @@
         ctx.lineTo(canvas.width * 0.5, 0);
         ctx.fill();
 
-        // 绘制气泡
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.lineWidth = 1;
         bubbles.forEach(b => {
@@ -275,22 +269,17 @@
             ctx.stroke();
         });
 
-        // 绘制珊瑚/礁石（障碍物）
         obstacles.forEach(obs => {
-            // 顶部珊瑚
             drawCoral(obs.x, 0, obs.width, obs.topHeight, true);
-            // 底部珊瑚
             drawCoral(obs.x, obs.bottomY, obs.width, canvas.height - obs.bottomY, false);
         });
 
-        // 绘制白饭
         riceGrains.forEach(rice => {
             if (!rice.collected) {
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
                 ctx.arc(rice.x, rice.y, rice.radius, 0, Math.PI * 2);
                 ctx.fill();
-                // 加一点米粒的高光
                 ctx.fillStyle = 'rgba(200, 230, 255, 0.8)';
                 ctx.beginPath();
                 ctx.arc(rice.x - 2, rice.y - 2, rice.radius * 0.4, 0, Math.PI * 2);
@@ -298,22 +287,17 @@
             }
         });
 
-        // 绘制大肥鱼（小鸟位置）
         if (gameState !== 'idle') {
             drawFish(fish.x, fish.y, fish.radius, fish.rotation);
         }
     }
 
-    // 画珊瑚
     function drawCoral(x, y, w, h, isTop) {
-        // 珊瑚主体颜色
-        ctx.fillStyle = isTop ? '#ff6b6b' : '#4ecdc4'; // 顶部粉红珊瑚，底部青色礁石
+        ctx.fillStyle = isTop ? '#ff6b6b' : '#4ecdc4'; 
         ctx.beginPath();
-        // 画成有点凹凸不平的柱子
         ctx.roundRect(x, y, w, h, [10]);
         ctx.fill();
 
-        // 珊瑚纹理
         ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
         if (isTop) {
             ctx.fillRect(x + 10, y + 10, 10, h - 20);
@@ -323,7 +307,6 @@
             ctx.fillRect(x + 30, y + 20, 8, h - 30);
         }
 
-        // 珊瑚分支（画几个小圆点装饰）
         ctx.fillStyle = isTop ? '#ff9f9f' : '#85e3dd';
         for (let i = 0; i < h; i += 30) {
             ctx.beginPath();
@@ -332,34 +315,28 @@
         }
     }
 
-    // 画大肥鱼
     function drawFish(x, y, r, rotation) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(rotation);
 
-        // 鱼身（蓝色圆球）
         ctx.fillStyle = '#5b9bd5';
         ctx.beginPath();
         ctx.arc(0, 0, r, 0, Math.PI * 2);
         ctx.fill();
 
-        // 鲸鱼鳍耳（三角形）
         ctx.fillStyle = '#3b4654';
-        // 上鳍
         ctx.beginPath();
         ctx.moveTo(-r * 0.5, -r * 0.8);
         ctx.lineTo(-r * 1.2, -r * 1.3);
         ctx.lineTo(0, -r * 0.5);
         ctx.fill();
-        // 下鳍
         ctx.beginPath();
         ctx.moveTo(-r * 0.5, r * 0.8);
         ctx.lineTo(-r * 1.2, r * 1.3);
         ctx.lineTo(0, r * 0.5);
         ctx.fill();
 
-        // 尾巴
         ctx.fillStyle = '#4a8ab5';
         ctx.beginPath();
         ctx.moveTo(-r, 0);
@@ -368,18 +345,15 @@
         ctx.closePath();
         ctx.fill();
 
-        // 眼睛
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(r * 0.3, -r * 0.2, r * 0.3, 0, Math.PI * 2);
         ctx.fill();
-        // 瞳孔
         ctx.fillStyle = '#000000';
         ctx.beginPath();
         ctx.arc(r * 0.4, -r * 0.2, r * 0.15, 0, Math.PI * 2);
         ctx.fill();
 
-        // 腮红（可爱一点）
         ctx.fillStyle = 'rgba(255, 100, 100, 0.4)';
         ctx.beginPath();
         ctx.arc(r * 0.1, r * 0.3, r * 0.25, 0, Math.PI * 2);
@@ -388,7 +362,6 @@
         ctx.restore();
     }
 
-    // 兼容旧浏览器的圆角矩形
     if (!CanvasRenderingContext2D.prototype.roundRect) {
         CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
             if (w < 2 * r) r = w / 2;
@@ -404,7 +377,6 @@
         };
     }
 
-    // 启动游戏循环
     update();
 </script>
 </body>
