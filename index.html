@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>大肥鱼游戏大厅</title>
+    <style>
+        body {
+            background-color: #1a1e24;
+            color: #e0e6ed;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #5b9bd5;
+            font-size: 28px;
+            margin-bottom: 30px;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(91, 155, 213, 0.5);
+        }
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .game-card {
+            background-color: #232a33;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            text-decoration: none;
+            color: #e0e6ed;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 0 #1c2229, inset 0 0 0 1px #3b4654;
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .game-card:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #1c2229, inset 0 0 0 1px #3b4654;
+            background-color: #2e3743;
+        }
+        .tag {
+            font-size: 12px;
+            color: #ffcc00;
+            background: #0e1116;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🐟 大肥鱼游戏大厅</h1>
+
+    <div class="menu">
+        <a href="2048.html" class="game-card">
+            🔢 2048 <span class="tag">丝滑版</span>
+        </a>
+        <a href="tetris.html" class="game-card">
+            🧱 俄罗斯方块
+        </a>
+        <a href="snake.html" class="game-card">
+            🐍 贪吃蛇 <span class="tag">吃白饭</span>
+        </a>
+    </div>
+
+</body>
+</html>
