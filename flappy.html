@@ -169,7 +169,6 @@
         e.preventDefault(); jump(); 
     });
 
-    // 按钮事件绑定，防止冒泡
     const startBtn = document.getElementById('startBtn');
     const restartBtn = document.getElementById('restartBtn');
     
@@ -183,7 +182,6 @@
         if (gameState === 'playing') {
             frameCount++;
             
-            // 应用当前难度的重力和速度
             fish.vy += DIFFICULTY[diffIndex].gravity;
             fish.y += fish.vy;
             fish.rotation = Math.min(Math.max(fish.vy * 0.05, -0.4), 0.5);
@@ -193,7 +191,7 @@
             }
 
             if (frameCount % DIFFICULTY[diffIndex].spawn === 0) {
-                let gap = 160; // 间隙稍微放大，因为速度变慢了
+                let gap = 160; 
                 let topHeight = Math.random() * (canvas.height - gap - 100) + 50;
                 
                 obstacles.push({
@@ -212,10 +210,9 @@
                 });
             }
 
-            // 障碍移动和碰撞
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
-                obs.x -= 2.5; // 障碍移动速度微调
+                obs.x -= 2.5; 
                 
                 let fishLeft = fish.x - fish.radius;
                 let fishRight = fish.x + fish.radius;
@@ -239,7 +236,6 @@
                 }
             }
 
-            // 白饭移动和碰撞
             for (let i = riceGrains.length - 1; i >= 0; i--) {
                 let rice = riceGrains[i];
                 rice.x -= 2.5;
@@ -259,7 +255,6 @@
                 }
             }
 
-            // 气泡
             bubbles.forEach(b => {
                 b.y -= b.speed;
                 if (b.y < 0) { b.y = canvas.height; b.x = Math.random() * canvas.width; }
@@ -280,24 +275,20 @@
         ctx.fillStyle = '#0b1d3a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 海底光线
         ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
         ctx.beginPath();
         ctx.moveTo(canvas.width * 0.2, 0); ctx.lineTo(canvas.width * 0.5, canvas.height);
         ctx.lineTo(canvas.width * 0.8, canvas.height); ctx.lineTo(canvas.width * 0.5, 0);
         ctx.fill();
 
-        // 气泡
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 1;
         bubbles.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke(); });
 
-        // 障碍
         obstacles.forEach(obs => {
             drawCoral(obs.x, 0, obs.width, obs.topHeight, true);
             drawCoral(obs.x, obs.bottomY, obs.width, canvas.height - obs.bottomY, false);
         });
 
-        // 白饭
         riceGrains.forEach(rice => {
             if (!rice.collected) {
                 ctx.fillStyle = '#ffffff'; ctx.beginPath();
@@ -308,41 +299,41 @@
         });
 
         if (gameState !== 'idle') {
-            // 换成像素版大肥鱼
+            // 调用像素大肥鱼
             drawPixelFish(fish.x, fish.y, fish.rotation);
         }
     }
 
-    // 像素版大肥鱼绘制（核心更新）
+    // 像素版大肥鱼绘制
     function drawPixelFish(x, y, rotation) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(rotation);
         
-        const p = 3; // 像素块大小 3px
-        // 颜色定义
-        const cHair = '#3d6baf'; // 深蓝发色
-        const cHairLight = '#5b9bd5'; // 浅蓝高光
+        const p = 3; // 像素块大小
+        const cHair = '#4a80d4'; // 深蓝发色
+        const cHairLight = '#7ab8ff'; // 浅蓝高光
         const cHeadWear = '#ffffff'; // 女仆头饰
-        const cFace = '#ffd7b5'; // 脸部肤色
-        const cEye = '#000000'; // 眼睛
-        const cDress = '#232a33'; // 女仆裙子
-        const cApron = '#ffffff'; // 围裙
-        const cTail = '#4a8ab5'; // 尾巴
+        const cFace = '#ffecd6'; // 脸部肤色
+        const cEye = '#1a1e24'; // 眼睛
+        const cDress = '#2a3542'; // 女仆裙子
+        const cApron = '#f0f4f8'; // 围裙
+        const cTail = '#5b9bd5'; // 尾巴
 
-        // 1. 画尾巴（画在身体后面）
+        // 尾巴
         ctx.fillStyle = cTail;
-        ctx.fillRect(-12 * p, -2 * p, 6 * p, 4 * p); // 尾鳍主体
-        ctx.fillRect(-14 * p, -4 * p, 4 * p, 2 * p); // 尾鳍上分叉
-        ctx.fillRect(-14 * p, 2 * p, 4 * p, 2 * p);  // 尾鳍下分叉
+        ctx.fillRect(-10 * p, -2 * p, 4 * p, 4 * p);
+        ctx.fillRect(-13 * p, -4 * p, 3 * p, 2 * p);
+        ctx.fillRect(-13 * p, 2 * p, 3 * p, 2 * p);
 
-        // 2. 画后侧头发
+        // 后侧头发
         ctx.fillStyle = cHair;
         ctx.fillRect(-6 * p, -8 * p, 10 * p, 14 * p);
 
-        // 3. 画女仆裙身体
+        // 女仆裙身体
         ctx.fillStyle = cDress;
         ctx.fillRect(-6 * p, 4 * p, 10 * p, 6 * p);
+        
         // 围裙
         ctx.fillStyle = cApron;
         ctx.fillRect(-3 * p, 6 * p, 6 * p, 4 * p);
@@ -350,46 +341,48 @@
         ctx.fillStyle = cHairLight;
         ctx.fillRect(0, 8 * p, 2 * p, 1 * p);
 
-        // 4. 画脸蛋
+        // 脸蛋
         ctx.fillStyle = cFace;
         ctx.fillRect(-4 * p, -4 * p, 7 * p, 7 * p);
 
-        // 5. 画腮红
+        // 腮红
         ctx.fillStyle = '#ff9999';
-        ctx.fillRect(-4 * p, 0, 2 * p, 2 * p);
-        ctx.fillRect(2 * p, 0, 2 * p, 2 * p);
+        ctx.fillRect(-5 * p, 0, 2 * p, 2 * p);
+        ctx.fillRect(3 * p, 0, 2 * p, 2 * p);
 
-        // 6. 画眼睛 (像素风格大眼睛)
+        // 眼睛
         ctx.fillStyle = cEye;
         ctx.fillRect(-3 * p, -1 * p, 2 * p, 2 * p);
         ctx.fillRect(1 * p, -1 * p, 2 * p, 2 * p);
+        
         // 眼睛高光
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(-3 * p, -1 * p, 1 * p, 1 * p);
         ctx.fillRect(1 * p, -1 * p, 1 * p, 1 * p);
 
-        // 7. 画前侧头发（刘海）
+        // 前侧头发（刘海）
         ctx.fillStyle = cHair;
         ctx.fillRect(-5 * p, -7 * p, 9 * p, 3 * p);
-        ctx.fillRect(-5 * p, -4 * p, 2 * p, 3 * p); // 左侧鬓角
-        ctx.fillRect(4 * p, -4 * p, 2 * p, 3 * p);  // 右侧鬓角
+        ctx.fillRect(-5 * p, -4 * p, 2 * p, 3 * p); 
+        ctx.fillRect(4 * p, -4 * p, 2 * p, 3 * p);  
 
         // 头发高光
         ctx.fillStyle = cHairLight;
         ctx.fillRect(-2 * p, -7 * p, 4 * p, 1 * p);
 
-        // 8. 画女仆头饰
+        // 女仆头饰
         ctx.fillStyle = cHeadWear;
-        ctx.fillRect(-5 * p, -9 * p, 9 * p, 2 * p); // 头饰主体
+        ctx.fillRect(-5 * p, -9 * p, 9 * p, 2 * p); 
         // 头饰花边
         for(let i = -5; i <= 4; i+=2) {
             ctx.fillRect(i * p, -10 * p, 1 * p, 1 * p);
         }
 
-        // 9. 画两侧鲸鱼鳍耳朵
+        // 鲸鱼鳍耳朵
         ctx.fillStyle = cHairLight;
         ctx.fillRect(-7 * p, -6 * p, 2 * p, 3 * p);
         ctx.fillRect(6 * p, -6 * p, 2 * p, 3 * p);
+        
         // 鳍的边缘
         ctx.fillStyle = cHeadWear;
         ctx.fillRect(-7 * p, -6 * p, 1 * p, 1 * p);
