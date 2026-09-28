@@ -5,122 +5,198 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>俄罗斯方块</title>
     <style>
+        /* 全局变量：默认主题（粉红） */
+        :root {
+            --bg-color: #ffe6e6;
+            --panel-bg: #ffcccc;
+            --text-color: #663333;
+            --btn-bg: #ffb3b3;
+            --btn-active: #ff9999;
+            --btn-text: #ffffff;
+            --canvas-bg: #fff0f0;
+            --canvas-grid: #ffe0e0;
+            --rotate-bg: #d970ff;
+            --drop-bg: #00bcd4;
+            --shadow-color: rgba(0,0,0,0.1);
+        }
+        /* 主题：粉蓝 */
+        body.theme-blue {
+            --bg-color: #e6f2ff;
+            --panel-bg: #cce6ff;
+            --text-color: #334d66;
+            --btn-bg: #99ccff;
+            --btn-active: #80b3ff;
+            --btn-text: #ffffff;
+            --canvas-bg: #f0f8ff;
+            --canvas-grid: #e0f0ff;
+            --rotate-bg: #66b3ff;
+            --drop-bg: #00bcd4;
+            --shadow-color: rgba(0,0,0,0.1);
+        }
+        /* 主题：粉绿 */
+        body.theme-green {
+            --bg-color: #e6ffe6;
+            --panel-bg: #ccffcc;
+            --text-color: #336633;
+            --btn-bg: #99ff99;
+            --btn-active: #80e680;
+            --btn-text: #ffffff;
+            --canvas-bg: #f0fff0;
+            --canvas-grid: #e0ffe0;
+            --rotate-bg: #66ff66;
+            --drop-bg: #00bcd4;
+            --shadow-color: rgba(0,0,0,0.1);
+        }
+        /* 主题：粉黄 */
+        body.theme-yellow {
+            --bg-color: #ffffe6;
+            --panel-bg: #ffffcc;
+            --text-color: #666633;
+            --btn-bg: #ffff99;
+            --btn-active: #ffff80;
+            --btn-text: #665500;
+            --canvas-bg: #fffff0;
+            --canvas-grid: #ffffe0;
+            --rotate-bg: #ffcc00;
+            --drop-bg: #00bcd4;
+            --shadow-color: rgba(0,0,0,0.1);
+        }
+
         body {
-            background-color: #1a1e24; color: #e0e6ed; font-family: sans-serif;
-            display: flex; justify-content: center; align-items: flex-start;
-            min-height: 100dvh; margin: 0; padding: 8px 0; box-sizing: border-box;
-            overflow-y: auto; touch-action: none;
+            background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100dvh; margin: 0; padding: 10px; box-sizing: border-box;
+            overflow-y: auto; touch-action: none; transition: background-color 0.3s;
         }
         .game-container {
             display: flex; flex-direction: column; align-items: center;
-            background: #232a33; padding: 12px; border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 0 1px #3b4654;
-            width: 95%; max-width: 360px; box-sizing: border-box;
+            width: 100%; max-width: 400px; box-sizing: border-box;
         }
         .header {
             display: flex; justify-content: space-between; align-items: center;
-            width: 100%; margin-bottom: 8px; font-size: 16px; font-weight: bold;
+            width: 100%; margin-bottom: 10px; font-size: 18px; font-weight: bold;
         }
         .score-box {
-            background: #0e1116; padding: 4px 15px; border-radius: 8px;
-            font-size: 20px; font-weight: bold; color: #ffcc00;
-            border: 1px solid #2e3743;
+            background: var(--panel-bg); padding: 5px 15px; border-radius: 8px;
+            font-size: 20px; font-weight: bold; color: #ff9900;
+            border: 2px solid var(--btn-bg); transition: background-color 0.3s;
         }
+        
+        /* 核心布局：左中右三明治 */
+        .main-play-area {
+            display: flex; justify-content: center; align-items: center; gap: 10px; width: 100%;
+        }
+        .sidebar {
+            display: flex; flex-direction: column; gap: 10px; justify-content: center;
+        }
+        .sidebar.left {
+            /* 难度 */
+            align-items: flex-start;
+        }
+        .sidebar.right {
+            /* 主题 */
+            align-items: flex-end;
+        }
+        
         canvas {
-            background-color: #0e1116; border-radius: 8px;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            background-color: var(--canvas-bg); border-radius: 8px;
+            box-shadow: inset 0 0 10px var(--shadow-color);
             height: 50dvh; width: auto; max-width: 100%; aspect-ratio: 1 / 2;
+            transition: background-color 0.3s;
         }
-        /* 顶部控制区 */
-        .controls-top {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-            width: 100%; margin-top: 10px;
+        
+        /* 小圆圈主题按钮 */
+        .theme-dot {
+            width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        .controls-top-single {
-            display: grid; grid-template-columns: 1fr; gap: 8px;
-            width: 100%; margin-top: 8px;
-        }
-        /* 底部操控区 */
-        .mobile-controls {
-            display: grid; 
-            grid-template-columns: 1fr 1.5fr; /* 左侧旋转占1份，右侧方向键占1.5份 */
-            gap: 8px;
-            width: 100%; margin-top: 8px;
-        }
+        .theme-dot.active { border-color: #333; transform: scale(1.1); }
+        .dot-pink { background: #ffcccc; }
+        .dot-blue { background: #cce6ff; }
+        .dot-green { background: #ccffcc; }
+        .dot-yellow { background: #ffffcc; }
+
+        /* 统一按钮样式 */
         .btn {
-            background: #3b4654; border: none; border-radius: 8px; color: #e0e6ed;
-            font-size: 20px; font-weight: bold; 
-            min-height: 60px; /* 最小高度保证触摸面积 */
+            background: var(--btn-bg); border: none; border-radius: 8px; color: var(--btn-text);
+            font-size: 16px; font-weight: bold; 
             display: flex; justify-content: center; align-items: center;
             cursor: pointer; user-select: none; 
-            box-shadow: 0 4px 0 #1c2229; transition: all 0.1s;
+            box-shadow: 0 4px 0 var(--btn-active); transition: all 0.1s;
+            width: 100%; padding: 10px 0;
         }
-        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #1c2229; }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 var(--btn-active); }
         
-        /* 旋转按钮 */
-        .btn.rotate { 
-            background: #a000f0; 
-            height: 100%; /* 撑满整个左栏 */
-            font-size: 22px;
-            flex-direction: column;
-        }
-        /* 右侧方向键组 */
-        .direction-pad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-        .direction-pad .btn {
-            height: 100%; /* 撑满右栏高度 */
-            font-size: 24px;
-        }
+        .btn.rotate { background: var(--rotate-bg); }
+        .btn.drop { background: var(--drop-bg); color: white; }
+        .btn.restart { background: #ff6666; color: white; }
+        .btn.pause { background: #ffb366; color: white; }
         
-        /* 一键直落：替换成漂亮的青色 */
-        .btn.drop { 
-            grid-column: span 2; /* 跨越两列 */
-            background: #00bcd4; 
-            color: white; 
-            min-height: 55px;
-            font-size: 18px;
+        /* 工字形底部控制区 */
+        .controls-bottom {
+            display: flex; flex-direction: column; gap: 8px;
+            width: 100%; margin-top: 10px;
         }
-        /* 顶部按钮颜色 */
-        .btn.restart { background: #f00000; }
-        .btn.pause { background: #f0a000; }
-        .btn.speed { background: #f0a000; }
+        .row-rotate { display: flex; justify-content: center; }
+        .row-rotate .btn { width: 50%; }
+        
+        .row-arrows { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .row-arrows .btn { min-height: 55px; font-size: 22px; }
+        
+        .row-drop { display: flex; }
+
+        /* 顶部按钮 */
+        .header-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; margin-bottom: 5px; }
     </style>
 </head>
-<body>
+<body class="theme-pink">
 
 <div class="game-container">
     <div class="header">
         <div>分数:</div>
         <div class="score-box" id="score">0</div>
     </div>
-    <canvas id="gameCanvas" width="300" height="600"></canvas>
     
-    <!-- 顶部控制区 -->
-    <div class="controls-top">
+    <!-- 顶部按钮区 -->
+    <div class="header-btns">
         <button class="btn restart" id="btnRestart">重新开始</button>
         <button class="btn pause" id="btnPause">暂停</button>
     </div>
-    <div class="controls-top-single">
-        <button class="btn speed" id="btnSpeed">速度: 普通</button>
+
+    <!-- 主体区域：左难度，中画布，右主题 -->
+    <div class="main-play-area">
+        <div class="sidebar left">
+            <div style="font-size:12px; font-weight:bold; margin-bottom:5px;">难度</div>
+            <button class="btn" id="btnSpeed" style="padding: 15px 5px; font-size: 14px;">普通</button>
+        </div>
+        
+        <canvas id="gameCanvas" width="300" height="600"></canvas>
+        
+        <div class="sidebar right">
+            <div style="font-size:12px; font-weight:bold; margin-bottom:5px;">主题</div>
+            <div class="theme-dot dot-pink active" data-theme="theme-pink"></div>
+            <div class="theme-dot dot-blue" data-theme="theme-blue"></div>
+            <div class="theme-dot dot-green" data-theme="theme-green"></div>
+            <div class="theme-dot dot-yellow" data-theme="theme-yellow"></div>
+        </div>
     </div>
 
-    <!-- 底部操控区 -->
-    <div class="mobile-controls">
-        <!-- 左侧：大大的旋转键 -->
-        <button class="btn rotate" id="btnUp">↻<br>旋转</button>
-        
-        <!-- 右侧：方向键组 -->
-        <div class="direction-pad">
+    <!-- 底部工字形控制区 -->
+    <div class="controls-bottom">
+        <!-- 第一行：旋转 -->
+        <div class="row-rotate">
+            <button class="btn rotate" id="btnUp">↻ 旋转</button>
+        </div>
+        <!-- 第二行：左中右 -->
+        <div class="row-arrows">
             <button class="btn left" id="btnLeft">←</button>
             <button class="btn down" id="btnDown">↓</button>
             <button class="btn right" id="btnRight">→</button>
         </div>
-        
-        <!-- 底部：一键直落（青色） -->
-        <button class="btn drop" id="btnDrop">⇓ 一键直落到底</button>
+        <!-- 第三行：一键直落 -->
+        <div class="row-drop">
+            <button class="btn drop" id="btnDrop">⇓ 一键直落到底</button>
+        </div>
     </div>
 </div>
 
@@ -139,11 +215,13 @@
     let dropCounter = 0;
     let lastTime = 0;
 
+    // 难度系统
     const SPEEDS = [800, 500, 200, 100];
     const SPEED_LABELS = ["慢速", "普通", "快速", "极速"];
     let speedIndex = 1;
     let dropInterval = SPEEDS[speedIndex];
 
+    // 方块颜色（不受主题影响，保持高对比度）
     const PIECES = [
         { shape: [[1, 1, 1, 1]], color: '#00f0f0' },
         { shape: [[1, 1, 1], [0, 1, 0]], color: '#a000f0' },
@@ -262,10 +340,16 @@
     }
 
     function draw() {
-        ctx.fillStyle = '#0e1116';
+        // 获取当前主题的画布背景色
+        const style = getComputedStyle(document.body);
+        const canvasBg = style.getPropertyValue('--canvas-bg').trim();
+        const gridColor = style.getPropertyValue('--canvas-grid').trim();
+        const shadowColor = style.getPropertyValue('--shadow-color').trim();
+
+        ctx.fillStyle = canvasBg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        ctx.strokeStyle = '#1c2229';
+        ctx.strokeStyle = gridColor;
         ctx.lineWidth = 0.5;
         for (let i = 0; i <= COLS; i++) { ctx.beginPath(); ctx.moveTo(i * BLOCK_SIZE, 0); ctx.lineTo(i * BLOCK_SIZE, canvas.height); ctx.stroke(); }
         for (let j = 0; j <= ROWS; j++) { ctx.beginPath(); ctx.moveTo(0, j * BLOCK_SIZE); ctx.lineTo(canvas.width, j * BLOCK_SIZE); ctx.stroke(); }
@@ -281,23 +365,23 @@
         }
 
         if (gameState === 'over') {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#ff4d4d'; ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center';
             ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 10);
-            ctx.fillStyle = '#e0e6ed'; ctx.font = '16px Arial';
+            ctx.fillStyle = '#333'; ctx.font = '16px Arial';
             ctx.fillText('点击上方"重新开始"', canvas.width / 2, canvas.height / 2 + 20);
         } else if (gameState === 'paused') {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#5b9bd5'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
             ctx.fillText('已暂停', canvas.width / 2, canvas.height / 2);
         } else if (gameState === 'idle') {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#5b9bd5'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
             ctx.fillText('准备好了吗？', canvas.width / 2, canvas.height / 2 - 10);
-            ctx.fillStyle = '#e0e6ed'; ctx.font = '16px Arial';
+            ctx.fillStyle = '#333'; ctx.font = '16px Arial';
             ctx.fillText('点击上方"重新开始"', canvas.width / 2, canvas.height / 2 + 20);
         }
     }
@@ -305,7 +389,7 @@
     function drawBlock(x, y, color) {
         ctx.fillStyle = color;
         ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, 5);
         ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 5, BLOCK_SIZE - 1);
     }
@@ -331,7 +415,8 @@
         currentPiece = getRandomPiece();
         dropCounter = 0; lastTime = performance.now();
         btnPause.innerText = '暂停';
-        btnPause.style.background = '#f0a000';
+        btnPause.style.background = '#ffb366';
+        btnPause.style.color = 'white';
         draw();
     }
 
@@ -342,7 +427,7 @@
     document.getElementById('btnDrop').addEventListener('touchstart', (e) => { e.preventDefault(); playerHardDrop(); });
     document.getElementById('btnRestart').addEventListener('click', resetGame);
 
-    // 实现“下键”长按硬降逻辑
+    // 长按“下键”硬降逻辑
     let downTimer = null;
     let isLongPress = false;
     const btnDown = document.getElementById('btnDown');
@@ -351,7 +436,6 @@
         e.preventDefault();
         if (gameState !== 'running') return;
         isLongPress = false;
-        // 启动长按定时器，300毫秒后触发硬降
         downTimer = setTimeout(() => {
             isLongPress = true;
             playerHardDrop();
@@ -362,32 +446,49 @@
         e.preventDefault();
         clearTimeout(downTimer);
         if (!isLongPress && gameState === 'running') {
-            playerDrop(); // 如果不是长按，正常下落一格
+            playerDrop();
         }
     });
 
+    // 暂停逻辑
     btnPause.addEventListener('click', () => {
         if (gameState === 'over' || gameState === 'idle') return;
         if (gameState === 'running') {
             gameState = 'paused';
             btnPause.innerText = '继续';
-            btnPause.style.background = '#00a000';
+            btnPause.style.background = '#66cc66';
+            btnPause.style.color = 'white';
         } else if (gameState === 'paused') {
             gameState = 'running';
             btnPause.innerText = '暂停';
-            btnPause.style.background = '#f0a000';
+            btnPause.style.background = '#ffb366';
+            btnPause.style.color = 'white';
             lastTime = performance.now();
             update();
         }
     });
 
+    // 难度切换逻辑
     btnSpeed.addEventListener('click', () => {
         speedIndex = (speedIndex + 1) % SPEEDS.length;
         dropInterval = SPEEDS[speedIndex];
-        btnSpeed.innerText = `速度: ${SPEED_LABELS[speedIndex]}`;
+        btnSpeed.innerText = SPEED_LABELS[speedIndex];
     });
 
-    // 键盘控制
+    // 主题切换逻辑
+    const themeDots = document.querySelectorAll('.theme-dot');
+    themeDots.forEach(dot => {
+        dot.addEventListener('click', () => {
+            // 移除其他active
+            themeDots.forEach(d => d.classList.remove('active'));
+            // 添加当前active
+            dot.classList.add('active');
+            // 切换body主题
+            document.body.className = dot.dataset.theme;
+        });
+    });
+
+    // 键盘控制（电脑端备用）
     document.addEventListener('keydown', e => {
         if (gameState === 'over') { if (e.key === 'r' || e.key === 'R') resetGame(); return; }
         if (e.key === 'p' || e.key === 'P') { btnPause.click(); e.preventDefault(); return; }
@@ -399,7 +500,7 @@
         else if (e.key === ' ') { playerHardDrop(); e.preventDefault(); }
     });
 
-    // 初始化，页面直接加载
+    // 初始化游戏并开始循环
     resetGame();
     update();
 </script>
