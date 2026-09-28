@@ -8,54 +8,64 @@
         body {
             background-color: #1a1e24; color: #e0e6ed; font-family: sans-serif;
             display: flex; justify-content: center; align-items: flex-start;
-            min-height: 100dvh; margin: 0; padding: 10px 0; box-sizing: border-box;
+            min-height: 100dvh; margin: 0; padding: 8px 0; box-sizing: border-box;
             overflow-y: auto; touch-action: none;
         }
         .game-container {
             display: flex; flex-direction: column; align-items: center;
-            background: #232a33; padding: 15px; border-radius: 15px;
+            background: #232a33; padding: 12px; border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 0 1px #3b4654;
-            width: 100%; max-width: 360px; box-sizing: border-box;
+            width: 95%; max-width: 360px; box-sizing: border-box;
         }
         .header {
             display: flex; justify-content: space-between; align-items: center;
-            width: 100%; margin-bottom: 10px; font-size: 16px; font-weight: bold;
+            width: 100%; margin-bottom: 8px; font-size: 16px; font-weight: bold;
         }
         .score-box {
-            background: #0e1116; padding: 5px 15px; border-radius: 8px;
+            background: #0e1116; padding: 4px 15px; border-radius: 8px;
             font-size: 20px; font-weight: bold; color: #ffcc00;
             border: 1px solid #2e3743;
         }
         canvas {
             background-color: #0e1116; border-radius: 8px;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
-            height: 55dvh; width: auto; max-width: 100%; aspect-ratio: 1 / 2;
+            height: 50dvh; width: auto; max-width: 100%; aspect-ratio: 1 / 2;
         }
+        /* 顶部控制区 */
         .controls-top {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
-    width: 100%; margin-top: 15px;
-}
-.mobile-controls {
-    display: grid; 
-    grid-template-columns: repeat(3, 1fr); 
-    gap: 10px;
-    width: 100%; margin-top: 10px;
-}
-.btn {
-    background: #3b4654; border: none; border-radius: 8px; color: #e0e6ed;
-    font-size: 20px; font-weight: bold; 
-    min-height: 60px; /* 强制按键变成方块大小，方便点按 */
-    display: flex; justify-content: center; align-items: center;
-    cursor: pointer; user-select: none; box-shadow: 0 4px 0 #1c2229; transition: all 0.1s;
-}
-.btn:active { transform: translateY(4px); box-shadow: 0 0 0 #1c2229; }
-/* 一键直落占三列 */
-.btn.drop { grid-column: span 3; background: #5b9bd5; color: white; }
-.btn.restart { background: #f00000; }
-.btn.start { background: #00a000; }
-.btn.pause { background: #a000f0; }
-.btn.speed { background: #f0a000; }
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+            width: 100%; margin-top: 10px;
+        }
+        .controls-top-single {
+            display: grid; grid-template-columns: 1fr; gap: 8px;
+            width: 100%; margin-top: 8px;
+        }
+        /* 底部操控区 */
+        .mobile-controls {
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 8px;
+            width: 100%; margin-top: 8px;
+        }
+        .btn {
+            background: #3b4654; border: none; border-radius: 8px; color: #e0e6ed;
+            font-size: 18px; font-weight: bold; 
+            min-height: 52px; /* 保证按键够大 */
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; user-select: none; 
+            box-shadow: 0 4px 0 #1c2229; transition: all 0.1s;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #1c2229; }
         
+        /* 颜色分类 */
+        .btn.rotate { background: #a000f0; }
+        .btn.left { background: #3b4654; }
+        .btn.down { background: #3b4654; }
+        .btn.right { background: #3b4654; }
+        .btn.drop { background: #5b9bd5; color: white; grid-column: span 3; }
+        .btn.restart { background: #f00000; }
+        .btn.pause { background: #f0a000; }
+        .btn.speed { background: #f0a000; }
     </style>
 </head>
 <body>
@@ -67,31 +77,30 @@
     </div>
     <canvas id="gameCanvas" width="300" height="600"></canvas>
     
+    <!-- 顶部控制区：重开和暂停并排 -->
     <div class="controls-top">
-    <button class="btn start" id="btnStart">开始游戏</button>
-    <button class="btn pause" id="btnPause">暂停</button>
-</div>
-<div class="controls-top" style="margin-top: 5px;">
-    <button class="btn speed" id="btnSpeed">速度: 普通</button>
-    <button class="btn restart" id="btnRestart">重新开始</button>
-</div>
+        <button class="btn restart" id="btnRestart">重新开始</button>
+        <button class="btn pause" id="btnPause">暂停</button>
+    </div>
+    <!-- 速度调节独立一行 -->
+    <div class="controls-top-single">
+        <button class="btn speed" id="btnSpeed">速度: 普通</button>
+    </div>
 
-<div class="mobile-controls">
-    <!-- 第一行：旋转键居中 -->
-    <button class="btn rotate" id="btnUp" style="grid-column: 2;">↻</button>
-    <!-- 第二行：左右下 -->
-    <button class="btn left" id="btnLeft">←</button>
-    <button class="btn down" id="btnDown">↓</button>
-    <button class="btn right" id="btnRight">→</button>
-    <!-- 第三行：一键直落 -->
-    <button class="btn drop" id="btnDrop">⇓ 一键直落到底</button>
+    <!-- 底部操控区：按键方正，一键直落完整显示 -->
+    <div class="mobile-controls">
+        <button class="btn rotate" id="btnUp">↻ 旋转</button>
+        <button class="btn left" id="btnLeft">←</button>
+        <button class="btn down" id="btnDown">↓<br><span style="font-size:12px;color:#aaa;">(长按直落)</span></button>
+        <button class="btn right" id="btnRight">→</button>
+        <button class="btn drop" id="btnDrop">⇓ 一键直落到底</button>
+    </div>
 </div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const scoreElement = document.getElementById('score');
-    const btnStart = document.getElementById('btnStart');
     const btnPause = document.getElementById('btnPause');
     const btnSpeed = document.getElementById('btnSpeed');
 
@@ -190,7 +199,6 @@
             currentPiece = getRandomPiece();
             if (collide(board, currentPiece)) {
                 gameState = 'over';
-                clearInterval(gameInterval);
             }
         }
         dropCounter = 0;
@@ -248,10 +256,10 @@
         if (gameState === 'over') {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#ff4d4d'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
-            ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 10);
+            ctx.fillStyle = '#ff4d4d'; ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center';
+            ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 10);
             ctx.fillStyle = '#e0e6ed'; ctx.font = '16px Arial';
-            ctx.fillText('点下方按钮重开', canvas.width / 2, canvas.height / 2 + 20);
+            ctx.fillText('点击上方"重新开始"', canvas.width / 2, canvas.height / 2 + 20);
         } else if (gameState === 'paused') {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -263,7 +271,7 @@
             ctx.fillStyle = '#5b9bd5'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
             ctx.fillText('准备好了吗？', canvas.width / 2, canvas.height / 2 - 10);
             ctx.fillStyle = '#e0e6ed'; ctx.font = '16px Arial';
-            ctx.fillText('点击上方"开始游戏"', canvas.width / 2, canvas.height / 2 + 20);
+            ctx.fillText('点击上方"重新开始"', canvas.width / 2, canvas.height / 2 + 20);
         }
     }
 
@@ -275,7 +283,6 @@
         ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 5, BLOCK_SIZE - 1);
     }
 
-    let gameInterval = null;
     function update(time = 0) {
         if (gameState !== 'running') {
             draw();
@@ -291,53 +298,46 @@
     }
 
     function resetGame() {
-        clearInterval(gameInterval);
         board = createMatrix(COLS, ROWS);
         score = 0; scoreElement.innerText = score;
-        gameState = 'idle';
+        gameState = 'running';
         currentPiece = getRandomPiece();
         dropCounter = 0; lastTime = performance.now();
-        btnStart.innerText = '开始游戏';
-        btnStart.style.background = '#00a000';
+        btnPause.innerText = '暂停';
+        btnPause.style.background = '#f0a000';
         draw();
     }
 
-    function startGame() {
-    if (gameState === 'running') return;
-    
-    if (gameState === 'paused') {
-        // 暂停状态下点击开始，相当于继续游戏
-        gameState = 'running';
-        btnStart.innerText = '游戏进行中';
-        btnStart.style.background = '#3b4654';
-        btnPause.innerText = '暂停';
-        btnPause.style.background = '#a000f0';
-        lastTime = performance.now();
-        update();
-        return;
-    }
-
-    if (gameState === 'over' || gameState === 'idle') {
-        resetGame();
-    }
-    
-    gameState = 'running';
-    btnStart.innerText = '游戏进行中';
-    btnStart.style.background = '#3b4654';
-    btnPause.innerText = '暂停';
-    btnPause.style.background = '#a000f0';
-    lastTime = performance.now();
-    update();
-}
-
-    // 按钮事件
+    // 按钮事件绑定
     document.getElementById('btnLeft').addEventListener('touchstart', (e) => { e.preventDefault(); playerMove(-1); });
     document.getElementById('btnRight').addEventListener('touchstart', (e) => { e.preventDefault(); playerMove(1); });
-    document.getElementById('btnDown').addEventListener('touchstart', (e) => { e.preventDefault(); playerDrop(); });
     document.getElementById('btnUp').addEventListener('touchstart', (e) => { e.preventDefault(); playerRotate(); });
     document.getElementById('btnDrop').addEventListener('touchstart', (e) => { e.preventDefault(); playerHardDrop(); });
     document.getElementById('btnRestart').addEventListener('click', resetGame);
-    btnStart.addEventListener('click', startGame);
+
+    // 实现“下键”长按硬降逻辑
+    let downTimer = null;
+    let isLongPress = false;
+    const btnDown = document.getElementById('btnDown');
+    
+    btnDown.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (gameState !== 'running') return;
+        isLongPress = false;
+        // 启动长按定时器，300毫秒后触发硬降
+        downTimer = setTimeout(() => {
+            isLongPress = true;
+            playerHardDrop();
+        }, 300);
+    });
+
+    btnDown.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        clearTimeout(downTimer);
+        if (!isLongPress && gameState === 'running') {
+            playerDrop(); // 如果不是长按，正常下落一格
+        }
+    });
 
     btnPause.addEventListener('click', () => {
         if (gameState === 'over' || gameState === 'idle') return;
@@ -348,7 +348,7 @@
         } else if (gameState === 'paused') {
             gameState = 'running';
             btnPause.innerText = '暂停';
-            btnPause.style.background = '#a000f0';
+            btnPause.style.background = '#f0a000';
             lastTime = performance.now();
             update();
         }
@@ -372,7 +372,9 @@
         else if (e.key === ' ') { playerHardDrop(); e.preventDefault(); }
     });
 
+    // 初始化，页面直接加载
     resetGame();
+    update();
 </script>
 </body>
 </html>
