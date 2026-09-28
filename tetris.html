@@ -43,26 +43,47 @@
         /* 底部操控区 */
         .mobile-controls {
             display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
+            grid-template-columns: 1fr 1.5fr; /* 左侧旋转占1份，右侧方向键占1.5份 */
             gap: 8px;
             width: 100%; margin-top: 8px;
         }
         .btn {
             background: #3b4654; border: none; border-radius: 8px; color: #e0e6ed;
-            font-size: 18px; font-weight: bold; 
-            min-height: 52px; /* 保证按键够大 */
+            font-size: 20px; font-weight: bold; 
+            min-height: 60px; /* 最小高度保证触摸面积 */
             display: flex; justify-content: center; align-items: center;
             cursor: pointer; user-select: none; 
             box-shadow: 0 4px 0 #1c2229; transition: all 0.1s;
         }
         .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #1c2229; }
         
-        /* 颜色分类 */
-        .btn.rotate { background: #a000f0; }
-        .btn.left { background: #3b4654; }
-        .btn.down { background: #3b4654; }
-        .btn.right { background: #3b4654; }
-        .btn.drop { background: #5b9bd5; color: white; grid-column: span 3; }
+        /* 旋转按钮 */
+        .btn.rotate { 
+            background: #a000f0; 
+            height: 100%; /* 撑满整个左栏 */
+            font-size: 22px;
+            flex-direction: column;
+        }
+        /* 右侧方向键组 */
+        .direction-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .direction-pad .btn {
+            height: 100%; /* 撑满右栏高度 */
+            font-size: 24px;
+        }
+        
+        /* 一键直落：替换成漂亮的青色 */
+        .btn.drop { 
+            grid-column: span 2; /* 跨越两列 */
+            background: #00bcd4; 
+            color: white; 
+            min-height: 55px;
+            font-size: 18px;
+        }
+        /* 顶部按钮颜色 */
         .btn.restart { background: #f00000; }
         .btn.pause { background: #f0a000; }
         .btn.speed { background: #f0a000; }
@@ -77,22 +98,28 @@
     </div>
     <canvas id="gameCanvas" width="300" height="600"></canvas>
     
-    <!-- 顶部控制区：重开和暂停并排 -->
+    <!-- 顶部控制区 -->
     <div class="controls-top">
         <button class="btn restart" id="btnRestart">重新开始</button>
         <button class="btn pause" id="btnPause">暂停</button>
     </div>
-    <!-- 速度调节独立一行 -->
     <div class="controls-top-single">
         <button class="btn speed" id="btnSpeed">速度: 普通</button>
     </div>
 
-    <!-- 底部操控区：按键方正，一键直落完整显示 -->
+    <!-- 底部操控区 -->
     <div class="mobile-controls">
-        <button class="btn rotate" id="btnUp">↻ 旋转</button>
-        <button class="btn left" id="btnLeft">←</button>
-        <button class="btn down" id="btnDown">↓<br><span style="font-size:12px;color:#aaa;">(长按直落)</span></button>
-        <button class="btn right" id="btnRight">→</button>
+        <!-- 左侧：大大的旋转键 -->
+        <button class="btn rotate" id="btnUp">↻<br>旋转</button>
+        
+        <!-- 右侧：方向键组 -->
+        <div class="direction-pad">
+            <button class="btn left" id="btnLeft">←</button>
+            <button class="btn down" id="btnDown">↓</button>
+            <button class="btn right" id="btnRight">→</button>
+        </div>
+        
+        <!-- 底部：一键直落（青色） -->
         <button class="btn drop" id="btnDrop">⇓ 一键直落到底</button>
     </div>
 </div>
