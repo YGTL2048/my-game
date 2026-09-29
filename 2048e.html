@@ -58,10 +58,11 @@
             font-size: 14px;
             cursor: pointer;
             font-weight: bold;
+            transition: all 0.1s;
         }
 
         .btn-erase { background-color: #f0a000; }
-        .btn-erase:active { background-color: #c08000; }
+        .btn-erase:active { transform: translateY(3px); box-shadow: 0 3px 0 #c08000; }
 
         .grid-container {
             position: relative;
@@ -101,8 +102,8 @@
             align-items: center;
             font-size: 35px;
             font-weight: bold;
-            transition: transform 0.1s ease-in-out;
-            will-change: transform;
+            transition: transform 0.1s ease-in-out, opacity 0.3s ease;
+            will-change: transform, opacity;
         }
 
         /* 数字颜色配置 */
@@ -122,11 +123,6 @@
         /* 原有动画 */
         @keyframes appear { 0% { opacity: 0; } 100% { opacity: 1; } }
         @keyframes pop { 0% { box-shadow: 0 0 0 rgba(255,255,255,0); } 50% { box-shadow: 0 0 20px rgba(255,255,255,0.8); } 100% { box-shadow: 0 0 0 rgba(255,255,255,0); } }
-        
-        /* ★★★ 新增：消除时的动画（原地缩小消失，不旋转） ★★★ */
-        @keyframes erase { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
-        .tile-erased { animation: erase 0.3s ease-out forwards; z-index: 10; }
-
         .tile-new { animation: appear 0.2s ease-out; }
         .tile-merged { animation: pop 0.2s ease-in-out; }
 
@@ -349,11 +345,10 @@
             setTimeout(() => { isAnimating = false; }, 150);
         }
 
-        // ★★★ 新增功能：无限次消除最大方块（简约缩小消失动画） ★★★
+        // ★★★ 全新修复：消除最大方块（原地缩小消失） ★★★
         function eraseLargestTile() {
             if (isGameOver || isAnimating) return;
 
-            // 1. 找到当前棋盘上的最大数值
             let maxVal = 0;
             for (let r = 0; r < gridSize; r++) {
                 for (let c = 0; c < gridSize; c++) {
@@ -365,7 +360,6 @@
 
             if (maxVal === 0) return; 
 
-            // 2. 找到所有数值等于最大值的方块
             let candidates = [];
             for (let r = 0; r < gridSize; r++) {
                 for (let c = 0; c < gridSize; c++) {
@@ -375,19 +369,22 @@
                 }
             }
 
-            // 3. 随机选择一个
             let target = candidates[Math.floor(Math.random() * candidates.length)];
             let targetId = board[target.r][target.c].id;
 
             isAnimating = true;
             
-            // 4. 播放“原地缩小消失”的动画
             let tile = tileElements.get(targetId);
             if (tile) {
-                tile.classList.add('tile-erased');
+                // 关键修复：保留其原本的 translate 定位，在后面直接拼接 scale(0)，这样它就原地缩小了！
+                let oldTransform = tile.style.transform;
+                tile.style.transition = 'transform 0.3s ease-in, opacity 0.3s ease-in';
+                // 强制浏览器重绘，保证过渡生效
+                void tile.offsetWidth;
+                tile.style.transform = oldTransform + ' scale(0)';
+                tile.style.opacity = '0';
             }
 
-            // 5. 延迟 300ms 等动画播完，再更新数据和棋盘
             setTimeout(() => {
                 board[target.r][target.c] = null;
                 
@@ -397,9 +394,7 @@
                     tileElements.delete(targetId);
                 }
 
-                // 6. 补充一个随机方块（保证游戏能继续）
                 addRandomTile();
-                
                 renderBoard();
                 checkGameOver();
                 saveGame();
@@ -499,7 +494,6 @@
         restartBtn.addEventListener('click', initGame);
         retryBtn.addEventListener('click', initGame);
         
-        // 绑定消除按钮，阻止事件穿透（避免触发滑动）
         eraseBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); eraseLargestTile(); });
         eraseBtn.addEventListener('click', (e) => { e.stopPropagation(); eraseLargestTile(); });
 
