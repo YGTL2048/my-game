@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2048 无限消除版</title>
+    <title>2048 丝滑动画版</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -15,51 +15,53 @@
             height: 100vh;
             margin: 0;
             touch-action: none;
-            overflow: hidden;
         }
 
         .game-container {
             width: 90%;
             max-width: 480px;
-            display: flex;
-            flex-direction: column;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
-        .header h1 { font-size: 40px; margin: 0; }
+        .header h1 { font-size: 48px; margin: 0; }
 
         .score-box {
             background-color: #bbada0;
             color: white;
-            padding: 8px 15px;
+            padding: 10px 20px;
             border-radius: 6px;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 18px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        .score-title { font-size: 10px; color: #eee4da; margin-bottom: 2px; }
+        .score-title { font-size: 12px; color: #eee4da; margin-bottom: 4px; }
 
-        .controls {
-            display: flex; gap: 8px; margin-bottom: 10px;
+        .btn-group {
+            display: flex; gap: 8px;
         }
 
         .btn {
-            flex: 1; padding: 12px 0; font-size: 14px; font-weight: bold;
-            border: none; border-radius: 6px; cursor: pointer; transition: all 0.1s;
-            text-align: center; display: flex; justify-content: center; align-items: center;
+            background-color: #8f7a66;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
         }
-        .btn:active { transform: translateY(3px); }
-        .btn-restart { background-color: #8f7a66; color: white; box-shadow: 0 3px 0 #6b5a4b; }
-        .btn-erase { background-color: #f0a000; color: white; box-shadow: 0 3px 0 #c08000; }
+
+        .btn-erase { background-color: #f0a000; }
+        .btn-erase:active { background-color: #c08000; }
 
         .grid-container {
             position: relative;
@@ -73,14 +75,17 @@
             aspect-ratio: 1 / 1;
         }
 
+        /* 背景格子：只留颜色，不存数字 */
         .grid-cell {
             background-color: rgba(238, 228, 218, 0.35);
             border-radius: 6px;
         }
 
+        /* 方块层 */
         .tile-container {
             position: absolute;
-            top: 10px; left: 10px;
+            top: 10px;
+            left: 10px;
             width: calc(100% - 20px);
             height: calc(100% - 20px);
             pointer-events: none;
@@ -88,7 +93,6 @@
 
         .tile {
             position: absolute;
-            top: 0; left: 0;
             width: calc((100% - 30px) / 4);
             height: calc((100% - 30px) / 4);
             border-radius: 6px;
@@ -97,10 +101,11 @@
             align-items: center;
             font-size: 35px;
             font-weight: bold;
-            transition: transform 0.1s ease-in-out, opacity 0.15s ease;
-            will-change: transform, opacity;
+            transition: transform 0.1s ease-in-out;
+            will-change: transform;
         }
 
+        /* 数字颜色配置 */
         .tile-2 { background-color: #eee4da; color: #776e65; }
         .tile-4 { background-color: #ede0c8; color: #776e65; }
         .tile-8 { background-color: #f2b179; color: #f9f6f2; }
@@ -112,24 +117,23 @@
         .tile-512 { background-color: #edc850; color: #f9f6f2; font-size: 30px; }
         .tile-1024 { background-color: #edc53f; color: #f9f6f2; font-size: 25px; }
         .tile-2048 { background-color: #edc22e; color: #f9f6f2; font-size: 25px; box-shadow: 0 0 20px rgba(237, 194, 46, 0.5); }
+        .tile-super { background-color: #3c3a32; color: #f9f6f2; font-size: 20px; }
 
+        /* 原有动画 */
         @keyframes appear { 0% { opacity: 0; } 100% { opacity: 1; } }
         @keyframes pop { 0% { box-shadow: 0 0 0 rgba(255,255,255,0); } 50% { box-shadow: 0 0 20px rgba(255,255,255,0.8); } 100% { box-shadow: 0 0 0 rgba(255,255,255,0); } }
         
-        /* ★★★ 新增：消除时的打击感动画（放大 -> 缩小消失） ★★★ */
-        @keyframes shrinkAndFade {
-            0% { transform: scale(1) rotate(0deg); opacity: 1; z-index: 10; }
-            50% { transform: scale(1.15) rotate(10deg); opacity: 0.8; z-index: 10; }
-            100% { transform: scale(0) rotate(20deg); opacity: 0; z-index: 10; }
-        }
+        /* ★★★ 新增：消除时的动画（原地缩小消失，不旋转） ★★★ */
+        @keyframes erase { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
+        .tile-erased { animation: erase 0.3s ease-out forwards; z-index: 10; }
+
         .tile-new { animation: appear 0.2s ease-out; }
         .tile-merged { animation: pop 0.2s ease-in-out; }
-        .tile-erased { animation: shrinkAndFade 0.4s ease-in forwards; }
 
         .game-over {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(238, 228, 218, 0.85); /* 背景稍微加深，突出文字 */
+            background: rgba(238, 228, 218, 0.85);
             border-radius: 10px;
             display: flex;
             flex-direction: column;
@@ -139,7 +143,6 @@
             display: none;
         }
         .game-over h2 { font-size: 40px; margin-bottom: 10px; color: #776e65; }
-        /* ★★★ 菜就多练 ★★★ */
         .game-over p { font-size: 18px; font-weight: bold; color: #f65e3b; margin-bottom: 25px; letter-spacing: 2px; }
     </style>
 </head>
@@ -152,23 +155,23 @@
                 <span class="score-title">得分</span>
                 <span id="score">0</span>
             </div>
-        </div>
-
-        <!-- 控制按钮区 -->
-        <div class="controls">
-            <button class="btn btn-restart" id="restart-btn">重新开始</button>
-            <button class="btn btn-erase" id="erase-btn">消除最大方块 (无限制)</button>
+            <div class="btn-group">
+                <button class="btn btn-erase" id="erase-btn">消除最大</button>
+                <button class="btn" id="restart-btn">重开</button>
+            </div>
         </div>
 
         <div class="grid-container" id="grid">
+            <!-- 背景网格 -->
             <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
             <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
             <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
             <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
             
+            <!-- 方块容器 -->
             <div class="tile-container" id="tile-container"></div>
 
-            <!-- 修改 Game Over 界面 -->
+            <!-- 游戏结束遮罩 -->
             <div class="game-over" id="game-over">
                 <h2>游戏结束</h2>
                 <p>菜就多练</p>
@@ -208,7 +211,6 @@
             addRandomTile();
             addRandomTile();
             renderBoard();
-            saveGame();
         }
 
         function addRandomTile() {
@@ -269,11 +271,8 @@
             deadIds.forEach(id => {
                 let tile = tileElements.get(id);
                 if (tile) {
-                    tile.classList.add('tile-erased'); 
-                    setTimeout(() => {
-                        tile.remove();
-                        tileElements.delete(id);
-                    }, 400); // 匹配 shrinkAndFade 动画的 0.4s
+                    tile.remove();
+                    tileElements.delete(id);
                 }
             });
         }
@@ -350,10 +349,11 @@
             setTimeout(() => { isAnimating = false; }, 150);
         }
 
-        // ★★★ 无限次消除最大方块 + 动画优化 ★★★
+        // ★★★ 新增功能：无限次消除最大方块（简约缩小消失动画） ★★★
         function eraseLargestTile() {
             if (isGameOver || isAnimating) return;
 
+            // 1. 找到当前棋盘上的最大数值
             let maxVal = 0;
             for (let r = 0; r < gridSize; r++) {
                 for (let c = 0; c < gridSize; c++) {
@@ -365,6 +365,7 @@
 
             if (maxVal === 0) return; 
 
+            // 2. 找到所有数值等于最大值的方块
             let candidates = [];
             for (let r = 0; r < gridSize; r++) {
                 for (let c = 0; c < gridSize; c++) {
@@ -374,36 +375,36 @@
                 }
             }
 
+            // 3. 随机选择一个
             let target = candidates[Math.floor(Math.random() * candidates.length)];
             let targetId = board[target.r][target.c].id;
 
             isAnimating = true;
             
-            // 先把要消除的方块标记，让动画跑起来
+            // 4. 播放“原地缩小消失”的动画
             let tile = tileElements.get(targetId);
             if (tile) {
-                tile.classList.add('tile-erased'); // 播放放大旋转缩小消失动画
+                tile.classList.add('tile-erased');
             }
 
-            // 延迟 400ms 等动画播完，再更新数据和棋盘
+            // 5. 延迟 300ms 等动画播完，再更新数据和棋盘
             setTimeout(() => {
                 board[target.r][target.c] = null;
                 
-                // 移除已消除的 DOM 节点
                 let oldTile = tileElements.get(targetId);
                 if (oldTile) {
                     oldTile.remove();
                     tileElements.delete(targetId);
                 }
 
-                // 补充一个随机方块（防止棋盘直接空置死局）
+                // 6. 补充一个随机方块（保证游戏能继续）
                 addRandomTile();
                 
                 renderBoard();
                 checkGameOver();
                 saveGame();
                 isAnimating = false;
-            }, 400);
+            }, 300);
         }
 
         function checkGameOver() {
@@ -431,7 +432,7 @@
                     tileIdCounter: tileIdCounter
                 };
                 localStorage.setItem('game2048_save', JSON.stringify(saveData));
-            } catch (e) {}
+            } catch (e) { console.log('保存失败', e); }
         }
 
         function loadGame() {
@@ -459,7 +460,7 @@
                     checkGameOver();
                     return true;
                 }
-            } catch (e) {}
+            } catch (e) { console.log('读取失败', e); }
             return false;
         }
 
@@ -498,6 +499,7 @@
         restartBtn.addEventListener('click', initGame);
         retryBtn.addEventListener('click', initGame);
         
+        // 绑定消除按钮，阻止事件穿透（避免触发滑动）
         eraseBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); eraseLargestTile(); });
         eraseBtn.addEventListener('click', (e) => { e.stopPropagation(); eraseLargestTile(); });
 
