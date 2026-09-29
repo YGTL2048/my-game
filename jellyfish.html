@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>合成大水母</title>
+    <style>
+        body {
+            background-color: #0b1d3a;
+            color: #e0e6ed; font-family: sans-serif;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            min-height: 100dvh; margin: 0; padding: 0; box-sizing: border-box;
+            overflow: hidden; touch-action: none; user-select: none;
+        }
+        .game-container {
+            position: relative; width: 100%; max-width: 420px;
+            height: 88dvh; max-height: 720px;
+            display: flex; flex-direction: column;
+            background: linear-gradient(to bottom, #0d2b4e, #1a4a6e);
+            border-radius: 12px; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 2px solid #2a4a6e;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+        #score-board {
+            position: absolute; top: 12px; left: 15px;
+            font-size: 22px; font-weight: bold; color: #ffcc00;
+            text-shadow: 1px 1px 0 #000; z-index: 5;
+        }
+        .controls {
+            position: absolute; bottom: 15px; left: 0; width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; box-sizing: border-box; z-index: 10;
+        }
+        .ctrl-btn {
+            width: 65px; height: 65px; border-radius: 50%;
+            background: rgba(91, 155, 213, 0.6); color: white;
+            font-size: 28px; font-weight: bold;
+            display: flex; justify-content: center; align-items: center;
+            border: 2px solid rgba(255,255,255,0.4);
+            cursor: pointer; transition: all 0.1s;
+        }
+        .ctrl-btn:active { background: rgba(91, 155, 213, 0.9); transform: scale(0.92); }
+        .ctrl-btn.drop { background: rgba(255, 102, 102, 0.7); }
+        .ctrl-btn.drop:active { background: rgba(255, 102, 102, 1); }
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(0, 0, 0, 0.75); z-index: 20; text-align: center; padding: 20px; box-sizing: border-box;
+        }
+        .overlay h1 { font-size: 26px; color: #5b9bd5; margin-bottom: 10px; }
+        .overlay p { font-size: 15px; color: #ccddee; margin: 5px 0; line-height: 1.6; }
+        .btn {
+            margin-top: 20px; padding: 12px 35px; font-size: 18px; font-weight: bold;
+            background: #00bcd4; color: white; border: none; border-radius: 8px;
+            cursor: pointer; box-shadow: 0 4px 0 #008ba3;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 #008ba3; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div id="score-board">分数: 0</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="controls">
+        <div style="display: flex; gap: 15px;">
+            <button class="ctrl-btn" id="btnLeft">←</button>
+            <button class="ctrl-btn" id="btnRight">→</button>
+        </div>
+        <button class="ctrl-btn drop" id="btnDrop">↓</button>
+    </div>
+
+    <div class="overlay" id="startOverlay">
+        <h1>🐙 合成大水母</h1>
+        <p>← → 移动水母</p>
+        <p>↓ 松开让它掉下去</p>
+        <p>相同等级的水母碰到一起就会合成！</p>
+        <p>堆太高超过瓶口就结束哦～</p>
+        <button class="btn" id="startBtn">开始游戏</button>
+    </div>
+
+    <div class="overlay" id="overOverlay" style="display: none;">
+        <h1 id="overTitle">Game Over</h1>
+        <p id="finalScore">分数: 0</p>
+        <button class="btn" id="restartBtn">再来一局</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreBoard = document.getElementById('score-board');
+    const startOverlay = document.getElementById('startOverlay');
+    const overOverlay = document.getElementById('overOverlay');
+    const overTitle = document.getElementById('overTitle');
+    const finalScoreEl = document.getElementById('finalScore');
+
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // ================= 水母等级配置 =================
+    const LEVELS = [
+        { radius: 14,  color: '#e0f7fa', glow: 'rgba(224,247,250,0.3)', name: '幼崽' },
+        { radius: 20,  color: '#80deea', glow: 'rgba(128,222,234,0.3)', name: '小水母' },
+        { radius: 28,  color: '#4fc3f7', glow: 'rgba(79,195,247,0.3)',  name: '中水母' },
+        { radius: 38,  color: '#29b6f6', glow: 'rgba(41,182,246,0.3)',  name: '大水母' },
+        { radius: 50,  color: '#ab47bc', glow: 'rgba(171,71,188,0.3)',  name: '紫水母' },
+        { radius: 64,  color: '#ec407a', glow: 'rgba(236,64,122,0.3)',  name: '粉水母' },
+        { radius: 80,  color: '#ef5350', glow: 'rgba(239,83,80,0.3)',   name: '红水母' },
+        { radius: 100, color: '#ffd54f', glow: 'rgba(255,213,79,0.3)',  name: '金水母' },
+        { radius: 125, color: '#ff6f00', glow: 'rgba(255,111,0,0.4)',   name: '究极水母' }
+    ];
+
+    const DROP_LEVELS = [0, 0, 0, 1, 1]; // 随机掉落等级池
+
+    let gameState = 'idle'; // idle, playing, over
+    let score = 0;
+    let jellyfishList = [];
+    let currentJellyfish = null;
+    let nextLevelIndex = 0;
+    let frameCount = 0;
+    let gameOverLine = 0;
+    let dropCooldown = 0;
+
+    // 物理参数
+    const GRAVITY = 0.45;
+    const BOUNCE = 0.25;
+    const FRICTION = 0.98;
+    const SUBSTEPS = 4;
+
+    // 容器边界
+    let containerLeft, containerRight, containerTop, containerBottom;
+
+    function updateBounds() {
+        containerLeft = 30;
+        containerRight = canvas.width - 30;
+        containerTop = canvas.height * 0.08;
+        containerBottom = canvas.height - 90;
+        gameOverLine = canvas.height * 0.12;
+    }
+
+    // ================= 水母类 =================
+    class Jellyfish {
+        constructor(x, y, level, isPreview = false) {
+            this.x = x;
+            this.y = y;
+            this.level = level;
+            this.radius = LEVELS[level].radius;
+            this.vx = 0;
+            this.vy = 0;
+            this.isPreview = isPreview;
+            this.merged = false;
+            this.squishTimer = 0; // 合成时的缩放动画
+            this.squishScale = 1;
+        }
+
+        get color() { return LEVELS[this.level].color; }
+        get glow() { return LEVELS[this.level].glow; }
+
+        update() {
+            if (this.isPreview || this.merged) return;
+
+            this.vy += GRAVITY;
+            this.vx *= FRICTION;
+            this.vy *= FRICTION;
+
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // 墙壁碰撞
+            if (this.x - this.radius < containerLeft) {
+                this.x = containerLeft + this.radius;
+                this.vx = Math.abs(this.vx) * BOUNCE;
+            }
+            if (this.x + this.radius > containerRight) {
+                this.x = containerRight - this.radius;
+                this.vx = -Math.abs(this.vx) * BOUNCE;
+            }
+
+            // 地面碰撞
+            if (this.y + this.radius > containerBottom) {
+                this.y = containerBottom - this.radius;
+                this.vy = -Math.abs(this.vy) * BOUNCE;
+                if (Math.abs(this.vy) < 1) this.vy = 0;
+            }
+
+            // 缓动
+            if (Math.abs(this.vx) < 0.1) this.vx = 0;
+            if (Math.abs(this.vy) < 0.1 && this.y + this.radius >= containerBottom - 1) this.vy = 0;
+
+            // 合成动画
+            if (this.squishTimer > 0) {
+                this.squishTimer--;
+                this.squishScale = 1 + 0.3 * Math.sin((this.squishTimer / 15) * Math.PI);
+            }
+        }
+
+        draw(ctx) {
+            if (this.merged) return;
+            const r = this.radius * this.squishScale;
+
+            // 发光效果
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r + 6, 0, Math.PI * 2);
+            ctx.fillStyle = this.glow;
+            ctx.fill();
+
+            // 水母身体（半透明圆形）
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = this.isPreview ? 0.5 : 0.85;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // 高光
+            ctx.beginPath();
+            ctx.arc(this.x - r * 0.3, this.y - r * 0.3, r * 0.35, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.45)';
+            ctx.fill();
+
+            // 触手
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = Math.max(1.5, r * 0.08);
+            ctx.globalAlpha = 0.6;
+            for (let i = 0; i < 5; i++) {
+                const angle = -Math.PI / 2 + (i - 2) * 0.4;
+                const tx = this.x + Math.cos(angle) * r;
+                const ty = this.y + Math.sin(angle) * r;
+                ctx.beginPath();
+                ctx.moveTo(tx, ty);
+                ctx.quadraticCurveTo(
+                    tx + Math.sin(frameCount * 0.05 + i) * r * 0.3,
+                    ty + r * 0.6,
+                    tx + Math.sin(frameCount * 0.08 + i) * r * 0.2,
+                    ty + r * 1.0
+                );
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+
+            // 等级文字（高级水母显示）
+            if (this.level >= 4) {
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${Math.max(10, r * 0.35)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(LEVELS[this.level].name, this.x, this.y);
+            }
+        }
+    }
+
+    // ================= 游戏逻辑 =================
+    function initGame() {
+        resizeCanvas();
+        updateBounds();
+        jellyfishList = [];
+        score = 0;
+        scoreBoard.innerText = '分数: 0';
+        gameState = 'playing';
+        frameCount = 0;
+        dropCooldown = 0;
+        startOverlay.style.display = 'none';
+        overOverlay.style.display = 'none';
+        spawnNewJellyfish();
+    }
+
+    function spawnNewJellyfish() {
+        const level = DROP_LEVELS[Math.floor(Math.random() * DROP_LEVELS.length)];
+        const x = canvas.width / 2;
+        const y = 50;
+        currentJellyfish = new Jellyfish(x, y, level, true);
+    }
+
+    function dropJellyfish() {
+        if (!currentJellyfish || gameState !== 'playing' || dropCooldown > 0) return;
+        dropCooldown = 15;
+        currentJellyfish.isPreview = false;
+        jellyfishList.push(currentJellyfish);
+        currentJellyfish = null;
+        setTimeout(spawnNewJellyfish, 300);
+    }
+
+    function moveCurrent(dir) {
+        if (!currentJellyfish || gameState !== 'playing') return;
+        currentJellyfish.x += dir * 15;
+        if (currentJellyfish.x - currentJellyfish.radius < containerLeft) {
+            currentJellyfish.x = containerLeft + currentJellyfish.radius;
+        }
+        if (currentJellyfish.x + currentJellyfish.radius > containerRight) {
+            currentJellyfish.x = containerRight - currentJellyfish.radius;
+        }
+    }
+
+    function checkMerges() {
+        let merged = false;
+        for (let i = 0; i < jellyfishList.length; i++) {
+            for (let j = i + 1; j < jellyfishList.length; j++) {
+                const a = jellyfishList[i];
+                const b = jellyfishList[j];
+                if (a.merged || b.merged) continue;
+                if (a.level !== b.level) continue;
+                if (a.level >= LEVELS.length - 1) continue;
+
+                const dx = a.x - b.x;
+                const dy = a.y - b.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const minDist = a.radius + b.radius;
+
+                if (dist < minDist * 0.85) {
+                    // 合成！
+                    const newLevel = a.level + 1;
+                    const newX = (a.x + b.x) / 2;
+                    const newY = (a.y + b.y) / 2;
+
+                    a.merged = true;
+                    b.merged = true;
+
+                    const newJelly = new Jellyfish(newX, newY, newLevel);
+                    newJelly.squishTimer = 15;
+                    newJelly.vy = -2;
+                    jellyfishList.push(newJelly);
+
+                    // 加分
+                    score += Math.pow(2, newLevel);
+                    scoreBoard.innerText = `分数: ${score}`;
+
+                    // 播放合成光效
+                    playMergeEffect(newX, newY, newLevel);
+                    merged = true;
+                }
+            }
+        }
+        if (merged) {
+            // 移除已合成的
+            jellyfishList = jellyfishList.filter(j => !j.merged);
+        }
+        return merged;
+    }
+
+    function playMergeEffect(x, y, level) {
+        const effects = [];
+        for (let i = 0; i < 8; i++) {
+            effects.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                life: 20,
+                color: LEVELS[level].color
+            });
+        }
+        // 用简单的粒子效果
+        const effectTimer = setInterval(() => {
+            let alive = false;
+            effects.forEach(p => {
+                if (p.life <= 0) return;
+                alive = true;
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2;
+                p.life--;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life / 20;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            });
+            if (!alive) clearInterval(effectTimer);
+        }, 16);
+    }
+
+    function checkGameOver() {
+        for (const j of jellyfishList) {
+            if (j.merged) continue;
+            if (j.y - j.radius < gameOverLine && j.vy > -0.5) {
+                gameState = 'over';
+                overTitle.innerText = 'Game Over';
+                finalScoreEl.innerText = `分数: ${score}`;
+                overOverlay.style.display = 'flex';
+                return;
+            }
+        }
+    }
+
+    // ================= 物理更新 =================
+    function physicsUpdate() {
+        // 子步积分提高稳定性
+        for (let step = 0; step < SUBSTEPS; step++) {
+            jellyfishList.forEach(j => j.update());
+
+            // 水母之间的碰撞
+            for (let i = 0; i < jellyfishList.length; i++) {
+                for (let j = i + 1; j < jellyfishList.length; j++) {
+                    const a = jellyfishList[i];
+                    const b = jellyfishList[j];
+                    if (a.merged || b.merged) continue;
+
+                    const dx = b.x - a.x;
+                    const dy = b.y - a.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const minDist = a.radius + b.radius;
+
+                    if (dist < minDist && dist > 0) {
+                        const overlap = minDist - dist;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+
+                        // 质量加权位置修正
+                        const totalMass = a.radius * a.radius + b.radius * b.radius;
+                        const aRatio = (b.radius * b.radius) / totalMass;
+                        const bRatio = (a.radius * a.radius) / totalMass;
+
+                        a.x -= nx * overlap * aRatio;
+                        a.y -= ny * overlap * aRatio;
+                        b.x += nx * overlap * bRatio;
+                        b.y += ny * overlap * bRatio;
+
+                        // 弹性碰撞
+                        const relVx = b.vx - a.vx;
+                        const relVy = b.vy - a.vy;
+                        const relDot = relVx * nx + relVy * ny;
+
+                        if (relDot < 0) {
+                            const impulse = -(1 + BOUNCE) * relDot / totalMass;
+                            a.vx -= impulse * b.radius * b.radius * nx;
+                            a.vy -= impulse * b.radius * b.radius * ny;
+                            b.vx += impulse * a.radius * a.radius * nx;
+                            b.vy += impulse * a.radius * a.radius * ny;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (checkMerges()) {
+            // 合成后继续检测
+            setTimeout(checkMerges, 50);
+        }
+        checkGameOver();
+    }
+
+    // ================= 绘制 =================
+    function draw() {
+        // 海洋背景
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, '#0d2b4e');
+        grad.addColorStop(1, '#1a4a6e');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 气泡背景
+        for (let i = 0; i < 15; i++) {
+            const bx = (i * 137 + frameCount * 0.5) % canvas.width;
+            const by = canvas.height - ((i * 200 + frameCount * 1.5) % (canvas.height + 100));
+            ctx.beginPath();
+            ctx.arc(bx, by, 3 + (i % 3) * 2, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        // 容器边界
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
+        ctx.strokeRect(containerLeft, containerTop, containerRight - containerLeft, containerBottom - containerTop);
+        ctx.setLineDash([]);
+
+        // 危险线
+        ctx.strokeStyle = 'rgba(255, 80, 80, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(containerLeft, gameOverLine);
+        ctx.lineTo(containerRight, gameOverLine);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 绘制所有水母
+        jellyfishList.forEach(j => j.draw(ctx));
+
+        // 绘制预览水母
+        if (currentJellyfish && gameState === 'playing') {
+            currentJellyfish.draw(ctx);
+            // 下落指示线
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 6]);
+            ctx.beginPath();
+            ctx.moveTo(currentJellyfish.x, currentJellyfish.y + currentJellyfish.radius + 5);
+            ctx.lineTo(currentJellyfish.x, containerBottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+    }
+
+    // ================= 游戏循环 =================
+    function gameLoop() {
+        if (gameState === 'playing') {
+            frameCount++;
+            if (dropCooldown > 0) dropCooldown--;
+
+            physicsUpdate();
+            draw();
+        } else {
+            // 空闲或结束时也绘制背景
+            draw();
+        }
+        requestAnimationFrame(gameLoop);
+    }
+
+    // ================= 事件绑定 =================
+    document.getElementById('btnLeft').addEventListener('touchstart', (e) => { e.preventDefault(); moveCurrent(-1); });
+    document.getElementById('btnRight').addEventListener('touchstart', (e) => { e.preventDefault(); moveCurrent(1); });
+    document.getElementById('btnDrop').addEventListener('touchstart', (e) => { e.preventDefault(); dropJellyfish(); });
+
+    // 键盘控制
+    document.addEventListener('keydown', (e) => {
+        if (gameState !== 'playing') return;
+        if (e.key === 'ArrowLeft') { moveCurrent(-1); e.preventDefault(); }
+        if (e.key === 'ArrowRight') { moveCurrent(1); e.preventDefault(); }
+        if (e.key === 'ArrowDown' || e.key === ' ') { dropJellyfish(); e.preventDefault(); }
+    });
+
+    document.getElementById('startBtn').addEventListener('click', initGame);
+    document.getElementById('restartBtn').addEventListener('click', initGame);
+
+    // 启动
+    initGame();
+    gameLoop();
+</script>
+</body>
+</html>
