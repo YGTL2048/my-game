@@ -59,7 +59,6 @@
         }
         .btn:active { transform: translateY(3px); }
         .btn-restart { background-color: #8f7a66; color: white; box-shadow: 0 3px 0 #6b5a4b; }
-        /* 修改按钮颜色为黄色，提示这是个危险操作 */
         .btn-erase { background-color: #f0a000; color: white; box-shadow: 0 3px 0 #c08000; }
 
         .grid-container {
@@ -116,14 +115,21 @@
 
         @keyframes appear { 0% { opacity: 0; } 100% { opacity: 1; } }
         @keyframes pop { 0% { box-shadow: 0 0 0 rgba(255,255,255,0); } 50% { box-shadow: 0 0 20px rgba(255,255,255,0.8); } 100% { box-shadow: 0 0 0 rgba(255,255,255,0); } }
+        
+        /* ★★★ 新增：消除时的打击感动画（放大 -> 缩小消失） ★★★ */
+        @keyframes shrinkAndFade {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; z-index: 10; }
+            50% { transform: scale(1.15) rotate(10deg); opacity: 0.8; z-index: 10; }
+            100% { transform: scale(0) rotate(20deg); opacity: 0; z-index: 10; }
+        }
         .tile-new { animation: appear 0.2s ease-out; }
         .tile-merged { animation: pop 0.2s ease-in-out; }
-        .tile-erased { animation: appear 0.2s ease-out reverse; opacity: 0; }
+        .tile-erased { animation: shrinkAndFade 0.4s ease-in forwards; }
 
         .game-over {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(238, 228, 218, 0.73);
+            background: rgba(238, 228, 218, 0.85); /* 背景稍微加深，突出文字 */
             border-radius: 10px;
             display: flex;
             flex-direction: column;
@@ -132,7 +138,9 @@
             z-index: 100;
             display: none;
         }
-        .game-over h2 { font-size: 40px; margin-bottom: 20px; color: #776e65; }
+        .game-over h2 { font-size: 40px; margin-bottom: 10px; color: #776e65; }
+        /* ★★★ 菜就多练 ★★★ */
+        .game-over p { font-size: 18px; font-weight: bold; color: #f65e3b; margin-bottom: 25px; letter-spacing: 2px; }
     </style>
 </head>
 <body>
@@ -160,8 +168,10 @@
             
             <div class="tile-container" id="tile-container"></div>
 
+            <!-- 修改 Game Over 界面 -->
             <div class="game-over" id="game-over">
                 <h2>游戏结束</h2>
+                <p>菜就多练</p>
                 <button id="retry-btn" style="background:#8f7a66; color:white; border:none; padding:10px 20px; border-radius:6px; font-size:16px; cursor:pointer;">再来一局</button>
             </div>
         </div>
@@ -263,7 +273,7 @@
                     setTimeout(() => {
                         tile.remove();
                         tileElements.delete(id);
-                    }, 150);
+                    }, 400); // 匹配 shrinkAndFade 动画的 0.4s
                 }
             });
         }
@@ -340,11 +350,10 @@
             setTimeout(() => { isAnimating = false; }, 150);
         }
 
-        // ★★★ 修改：无限次消除最大方块 ★★★
+        // ★★★ 无限次消除最大方块 + 动画优化 ★★★
         function eraseLargestTile() {
             if (isGameOver || isAnimating) return;
 
-            // 1. 找到最大数值
             let maxVal = 0;
             for (let r = 0; r < gridSize; r++) {
                 for (let c = 0; c < gridSize; c++) {
@@ -356,7 +365,6 @@
 
             if (maxVal === 0) return; 
 
-            // 2. 收集所有最大值的方块
             let candidates = [];
             for (let r = 0; r < gridSize; r++) {
                 for (let c = 0; c < gridSize; c++) {
@@ -366,29 +374,36 @@
                 }
             }
 
-            // 3. 随机选一个消除
             let target = candidates[Math.floor(Math.random() * candidates.length)];
             let targetId = board[target.r][target.c].id;
 
             isAnimating = true;
-            board[target.r][target.c] = null;
             
+            // 先把要消除的方块标记，让动画跑起来
             let tile = tileElements.get(targetId);
             if (tile) {
-                tile.classList.add('tile-erased');
-                setTimeout(() => { tile.remove(); tileElements.delete(targetId); }, 150);
+                tile.classList.add('tile-erased'); // 播放放大旋转缩小消失动画
             }
 
-            // 4. 补充一个随机方块（防止棋盘直接空置死局）
-            addRandomTile();
-
-            // 5. 渲染并检查状态
+            // 延迟 400ms 等动画播完，再更新数据和棋盘
             setTimeout(() => {
+                board[target.r][target.c] = null;
+                
+                // 移除已消除的 DOM 节点
+                let oldTile = tileElements.get(targetId);
+                if (oldTile) {
+                    oldTile.remove();
+                    tileElements.delete(targetId);
+                }
+
+                // 补充一个随机方块（防止棋盘直接空置死局）
+                addRandomTile();
+                
                 renderBoard();
                 checkGameOver();
                 saveGame();
                 isAnimating = false;
-            }, 150);
+            }, 400);
         }
 
         function checkGameOver() {
@@ -408,7 +423,6 @@
             gameOverOverlay.style.display = 'flex';
         }
 
-        // 存读档（已移除 eraseCount）
         function saveGame() {
             try {
                 const saveData = {
@@ -453,7 +467,6 @@
             try { localStorage.removeItem('game2048_save'); } catch (e) {}
         }
 
-        // 事件监听
         document.addEventListener('keydown', (e) => {
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 e.preventDefault();
